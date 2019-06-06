@@ -15,9 +15,14 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
+const (
+	DoUp = iota
+	DoDown
+)
+
 var (
-	UpToken   = "@migrate.up"
-	DownToken = "@migrate.down"
+	TokenUp   = "@migrate.up"
+	TokenDown = "@migrate.down"
 )
 
 type (
@@ -45,15 +50,7 @@ func ReadConfig(filename string) (mg Mg, err error) {
 	return mg, err
 }
 
-func (m *Migration) Up(name string) (err error) {
-	return m.run(name, false)
-}
-
-func (m *Migration) Down(name string) (err error) {
-	return m.run(name, true)
-}
-
-func (m *Migration) run(name string, down bool) (err error) {
+func (m *Migration) Exec(name string, do int) (err error) {
 	if err := m.parse(); err != nil {
 		return err
 	}
@@ -72,27 +69,40 @@ func (m *Migration) run(name string, down bool) (err error) {
 	}
 
 	for _, v := range m.Sources {
-		if down && lastVersion != v.Version {
-			continue
-		} else if lastVersion >= v.Version {
+		var mSQL, vSQL string
+		switch do {
+		case DoUp:
+			if lastVersion >= v.Version {
+				continue
+			}
+			mSQL = v.UpSQL
+			vSQL = m.VersionSQLBuilder.InsretApplied(v.Version)
+		case DoDown:
+			if lastVersion != v.Version {
+				continue
+			}
+			mSQL = v.DownSQL
+			vSQL = m.VersionSQLBuilder.DeleteApplied(v.Version)
+		}
+		if len(mSQL) == 0 {
 			continue
 		}
+
 		tx, err := db.Begin()
 		if err != nil {
 			return err
 		}
-		if down {
-			err = v.execDown(tx, m.VersionSQLBuilder)
-		} else {
-			err = v.execUp(tx, m.VersionSQLBuilder)
-		}
-		if err != nil {
-			tx.Rollback()
+		if _, err := tx.Exec(fmt.Sprintf("%s%s", mSQL, vSQL)); err != nil {
+			if rerr := tx.Rollback(); rerr != nil {
+				panic(rerr)
+			}
 			fmt.Printf("NG %s\n", v.Path)
-			return fmt.Errorf("Error: %s", err.Error())
+			return err
 		}
 		if err := tx.Commit(); err != nil {
-			tx.Rollback()
+			if rerr := tx.Rollback(); rerr != nil {
+				panic(rerr)
+			}
 			return err
 		}
 
@@ -102,27 +112,9 @@ func (m *Migration) run(name string, down bool) (err error) {
 	return nil
 }
 
-func (s *Source) execUp(tx *sql.Tx, builder VersionSQLBuilder) (err error) {
-	if _, err := tx.Exec(s.UpSQL); err != nil {
-		return err
-	}
-	_, err = tx.Exec(builder.InsretApplied(s.Version))
-
-	return err
-}
-
-func (s *Source) execDown(tx *sql.Tx, builder VersionSQLBuilder) (err error) {
-	if _, err := tx.Exec(s.DownSQL); err != nil {
-		return err
-	}
-	_, err = tx.Exec(builder.DeleteApplied(s.Version))
-
-	return err
-}
-
 func (m *Migration) parse() (err error) {
 	if m.VersionSQLBuilder = FetchVersionSQLBuilder(m.Driver, m.VersionTable); m.VersionSQLBuilder == nil {
-		return errors.New("Error: Driver does not exist.")
+		return errors.New("Driver does not exist.")
 	}
 
 	for _, v := range m.SourceDir {
@@ -160,12 +152,12 @@ func (s *Source) parse() (err error) {
 	if _, f := filepath.Split(s.Path); len(f) > 0 {
 		if n := strings.SplitN(f, "_", 2); len(n) == 2 {
 			if s.Version, err = strconv.ParseUint(strings.SplitN(f, "_", 2)[0], 10, 64); err != nil {
-				return fmt.Errorf("Error: Filename is version does not exist %s", s.Path)
+				return fmt.Errorf("Filename is version does not exist %s", s.Path)
 			}
 		}
 	}
 	if s.Version == 0 {
-		return fmt.Errorf("Error: Filename is version does not exist %s", s.Path)
+		return fmt.Errorf("Filename is version does not exist %s", s.Path)
 	}
 
 	file, err := os.Open(s.Path)
@@ -183,11 +175,11 @@ func (s *Source) parse() (err error) {
 			return err
 		}
 		if strings.HasPrefix(line, "--") {
-			if strings.Contains(line, UpToken) {
+			if strings.Contains(line, TokenUp) {
 				u = true
 				d = false
 			}
-			if strings.Contains(line, DownToken) {
+			if strings.Contains(line, TokenDown) {
 				u = false
 				d = true
 			}
