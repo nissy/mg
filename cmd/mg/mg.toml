@@ -1,11 +1,11 @@
 [production]
   driver = "postgres"
   dsn = "postgres://user:password@127.0.0.1:5432/miga?sslmode=disable"
-  source_dir = ["./migration/schema", "./migration/seed"]
-  version_table = "migration_versions"
+  source_dir = ["./db/migrations", "./db/seeds"]
+  version_table = "mg_versions"
 
 [development]
   driver = "postgres"
   dsn = "postgres://user:password@127.0.0.1:5432/miga?sslmode=disable"
-  source_dir = ["./migration/schema", "./migration/seed", "./migration/test"]
-  version_table = "migration_versions"
+  source_dir = ["./db/migrations", "./db/seeds", "./db/tests"]
+  version_table = "mg_versions"

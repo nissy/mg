@@ -29,7 +29,6 @@ type (
 		SourceDir    []string  `toml:"source_dir"`
 		Sources      []*Source `toml:"-"`
 		VersionTable string    `toml:"version_table"`
-		//Transaction  bool      `toml:"transaction"`
 	}
 
 	Source struct {
@@ -58,8 +57,8 @@ func (m *Migration) run(name string, number int, down bool) (err error) {
 		return err
 	}
 
-	vSQL := m.GetVersionSQL()
-	if vSQL == nil {
+	builder := m.NewVersionSQLBuilder()
+	if builder == nil {
 		return errors.New("not driver.")
 	}
 
@@ -70,8 +69,8 @@ func (m *Migration) run(name string, number int, down bool) (err error) {
 	defer db.Close()
 
 	var applied uint64
-	if err := db.QueryRow(vSQL.Fetch()).Scan(&applied); err != nil {
-		if _, err := db.Exec(vSQL.CreateTable()); err != nil {
+	if err := db.QueryRow(builder.Fetch()).Scan(&applied); err != nil {
+		if _, err := db.Exec(builder.CreateTable()); err != nil {
 			return err
 		}
 	}
@@ -92,9 +91,9 @@ func (m *Migration) run(name string, number int, down bool) (err error) {
 
 		fmt.Printf("OK %s\n", v.Path)
 
-		moveSQL := vSQL.Insret(v.Version)
+		moveSQL := builder.Insret(v.Version)
 		if down {
-			moveSQL = vSQL.Delete(v.Version)
+			moveSQL = builder.Delete(v.Version)
 		}
 		if _, err := db.Exec(moveSQL); err != nil {
 			return err
@@ -147,7 +146,7 @@ func (s *Source) parse() (err error) {
 		}
 	}
 	if s.Version == 0 {
-		return errors.New("VersionSQL is not found.")
+		return errors.New("VersionSQLBuilder is not found.")
 	}
 
 	file, err := os.Open(s.Path)

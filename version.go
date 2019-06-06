@@ -6,21 +6,21 @@ import (
 	_ "github.com/lib/pq"
 )
 
-type VersionSQL interface {
+type VersionSQLBuilder interface {
 	Fetch() string
 	Insret(version uint64) string
 	Delete(version uint64) string
 	CreateTable() string
 }
 
-type VersionPostgres struct {
+type vPostgres struct {
 	table string
 }
 
-func (m *Migration) GetVersionSQL() VersionSQL {
+func (m *Migration) NewVersionSQLBuilder() VersionSQLBuilder {
 	switch m.Driver {
 	case "postgres":
-		return &VersionPostgres{
+		return &vPostgres{
 			table: m.VersionTable,
 		}
 	}
@@ -28,28 +28,28 @@ func (m *Migration) GetVersionSQL() VersionSQL {
 	return nil
 }
 
-func (v *VersionPostgres) Fetch() string {
+func (v *vPostgres) Fetch() string {
 	return fmt.Sprintf(
 		"SELECT applied_version FROM %s ORDER BY applied_version DESC LIMIT 1",
 		v.table,
 	)
 }
 
-func (v *VersionPostgres) Insret(version uint64) string {
+func (v *vPostgres) Insret(version uint64) string {
 	return fmt.Sprintf(
 		"INSERT INTO %s (applied_version) VALUES (%d)",
 		v.table, version,
 	)
 }
 
-func (v *VersionPostgres) Delete(version uint64) string {
+func (v *vPostgres) Delete(version uint64) string {
 	return fmt.Sprintf(
 		"DELETE FROM %s WHERE applied_version = %d",
 		v.table, version,
 	)
 }
 
-func (v *VersionPostgres) CreateTable() string {
+func (v *vPostgres) CreateTable() string {
 	return fmt.Sprintf(
 		"CREATE TABLE %s (applied_version BIGSERIAL PRIMARY KEY, created_at timestamp with time zone NOT NULL DEFAULT now())",
 		v.table,
