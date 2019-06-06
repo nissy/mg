@@ -24,16 +24,17 @@ type (
 	Mg map[string]*Migration
 
 	Migration struct {
-		Driver       string    `toml:"driver"`
-		DSN          string    `toml:"dsn"`
-		SourceDir    []string  `toml:"source_dir"`
-		Sources      []*Source `toml:"-"`
-		VersionTable string    `toml:"version_table"`
+		Driver            string            `toml:"driver"`
+		DSN               string            `toml:"dsn"`
+		SourceDir         []string          `toml:"source_dir"`
+		Sources           []*Source         `toml:"-"`
+		VersionTable      string            `toml:"version_table"`
+		VersionSQLBuilder VersionSQLBuilder `toml:"-"`
 	}
 
 	Source struct {
-		Up      string
-		Down    string
+		UpSQL   string
+		DownSQL string
 		Path    string
 		Version uint64
 	}
@@ -44,22 +45,17 @@ func ReadConfig(filename string) (mg Mg, err error) {
 	return mg, err
 }
 
-func (m *Migration) Up(name string, number int) (err error) {
-	return m.run(name, number, false)
+func (m *Migration) Up(name string) (err error) {
+	return m.run(name, false)
 }
 
-func (m *Migration) Down(name string, number int) (err error) {
-	return m.run(name, number, true)
+func (m *Migration) Down(name string) (err error) {
+	return m.run(name, true)
 }
 
-func (m *Migration) run(name string, number int, down bool) (err error) {
+func (m *Migration) run(name string, down bool) (err error) {
 	if err := m.parse(); err != nil {
 		return err
-	}
-
-	builder := m.NewVersionSQLBuilder()
-	if builder == nil {
-		return errors.New("not driver.")
 	}
 
 	db, err := sql.Open(m.Driver, m.DSN)
@@ -68,44 +64,67 @@ func (m *Migration) run(name string, number int, down bool) (err error) {
 	}
 	defer db.Close()
 
-	var applied uint64
-	if err := db.QueryRow(builder.Fetch()).Scan(&applied); err != nil {
-		if _, err := db.Exec(builder.CreateTable()); err != nil {
+	var lastVersion uint64
+	if err := db.QueryRow(m.VersionSQLBuilder.FetchLastApplied()).Scan(&lastVersion); err != nil {
+		if _, err := db.Exec(m.VersionSQLBuilder.CreateTable()); err != nil {
 			return err
 		}
 	}
 
-	var i int
 	for _, v := range m.Sources {
-		if applied >= v.Version || number > 0 && number <= i {
+		if down && lastVersion != v.Version {
+			continue
+		} else if lastVersion >= v.Version {
 			continue
 		}
-
-		migrateSQL := v.Up
+		tx, err := db.Begin()
+		if err != nil {
+			return err
+		}
 		if down {
-			migrateSQL = v.Down
+			err = v.execDown(tx, m.VersionSQLBuilder)
+		} else {
+			err = v.execUp(tx, m.VersionSQLBuilder)
 		}
-		if _, err := db.Exec(migrateSQL); err != nil {
-			return fmt.Errorf("NG %s\nError: %s", v.Path, err.Error())
+		if err != nil {
+			tx.Rollback()
+			fmt.Printf("NG %s\n", v.Path)
+			return fmt.Errorf("Error: %s", err.Error())
 		}
-
-		fmt.Printf("OK %s\n", v.Path)
-
-		moveSQL := builder.Insret(v.Version)
-		if down {
-			moveSQL = builder.Delete(v.Version)
-		}
-		if _, err := db.Exec(moveSQL); err != nil {
+		if err := tx.Commit(); err != nil {
+			tx.Rollback()
 			return err
 		}
 
-		i++
+		fmt.Printf("OK %s\n", v.Path)
 	}
 
 	return nil
 }
 
+func (s *Source) execUp(tx *sql.Tx, builder VersionSQLBuilder) (err error) {
+	if _, err := tx.Exec(s.UpSQL); err != nil {
+		return err
+	}
+	_, err = tx.Exec(builder.InsretApplied(s.Version))
+
+	return err
+}
+
+func (s *Source) execDown(tx *sql.Tx, builder VersionSQLBuilder) (err error) {
+	if _, err := tx.Exec(s.DownSQL); err != nil {
+		return err
+	}
+	_, err = tx.Exec(builder.DeleteApplied(s.Version))
+
+	return err
+}
+
 func (m *Migration) parse() (err error) {
+	if m.VersionSQLBuilder = FetchVersionSQLBuilder(m.Driver, m.VersionTable); m.VersionSQLBuilder == nil {
+		return errors.New("Error: Driver does not exist.")
+	}
+
 	for _, v := range m.SourceDir {
 		fs, err := filepath.Glob(filepath.Join(v, "*.sql"))
 		if err != nil {
@@ -141,12 +160,12 @@ func (s *Source) parse() (err error) {
 	if _, f := filepath.Split(s.Path); len(f) > 0 {
 		if n := strings.SplitN(f, "_", 2); len(n) == 2 {
 			if s.Version, err = strconv.ParseUint(strings.SplitN(f, "_", 2)[0], 10, 64); err != nil {
-				return err
+				return fmt.Errorf("Error: Filename is version does not exist %s", s.Path)
 			}
 		}
 	}
 	if s.Version == 0 {
-		return errors.New("VersionSQLBuilder is not found.")
+		return fmt.Errorf("Error: Filename is version does not exist %s", s.Path)
 	}
 
 	file, err := os.Open(s.Path)
@@ -154,9 +173,7 @@ func (s *Source) parse() (err error) {
 		return err
 	}
 
-	defer func() {
-		err = file.Close()
-	}()
+	defer file.Close()
 
 	r := bufio.NewReader(file)
 	var u, d bool
@@ -176,10 +193,10 @@ func (s *Source) parse() (err error) {
 			}
 		} else {
 			if u {
-				s.Up += line
+				s.UpSQL += line
 			}
 			if d {
-				s.Down += line
+				s.DownSQL += line
 			}
 		}
 		if err == io.EOF {

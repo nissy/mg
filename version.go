@@ -7,9 +7,9 @@ import (
 )
 
 type VersionSQLBuilder interface {
-	Fetch() string
-	Insret(version uint64) string
-	Delete(version uint64) string
+	FetchLastApplied() string
+	InsretApplied(version uint64) string
+	DeleteApplied(version uint64) string
 	CreateTable() string
 }
 
@@ -17,32 +17,32 @@ type vPostgres struct {
 	table string
 }
 
-func (m *Migration) NewVersionSQLBuilder() VersionSQLBuilder {
-	switch m.Driver {
+func FetchVersionSQLBuilder(driver, table string) VersionSQLBuilder {
+	switch driver {
 	case "postgres":
 		return &vPostgres{
-			table: m.VersionTable,
+			table: table,
 		}
 	}
 
 	return nil
 }
 
-func (v *vPostgres) Fetch() string {
+func (v *vPostgres) FetchLastApplied() string {
 	return fmt.Sprintf(
 		"SELECT applied_version FROM %s ORDER BY applied_version DESC LIMIT 1",
 		v.table,
 	)
 }
 
-func (v *vPostgres) Insret(version uint64) string {
+func (v *vPostgres) InsretApplied(version uint64) string {
 	return fmt.Sprintf(
 		"INSERT INTO %s (applied_version) VALUES (%d)",
 		v.table, version,
 	)
 }
 
-func (v *vPostgres) Delete(version uint64) string {
+func (v *vPostgres) DeleteApplied(version uint64) string {
 	return fmt.Sprintf(
 		"DELETE FROM %s WHERE applied_version = %d",
 		v.table, version,

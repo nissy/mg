@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -10,10 +9,9 @@ import (
 )
 
 var (
-	filename = flag.String("c", "mg.toml", "set configuration file.")
-	up       = flag.String("up", "", "up migrations.")
-	down     = flag.String("down", "", "down migrations.")
-	number   = flag.Int("n", 0, "number of migrations to execute.")
+	cfgFile = flag.String("c", "mg.toml", "set configuration file.")
+	up      = flag.String("up", "", "up migrations.")
+	down    = flag.String("down", "", "down migrations.")
 )
 
 func main() {
@@ -25,8 +23,8 @@ func main() {
 func run() (err error) {
 	flag.Parse()
 
-	if len(*filename) > 0 {
-		m, err := mg.ReadConfig(*filename)
+	if len(*cfgFile) > 0 {
+		m, err := mg.ReadConfig(*cfgFile)
 		if err != nil {
 			return err
 		}
@@ -34,19 +32,19 @@ func run() (err error) {
 		switch {
 		case len(*up) > 0:
 			if vv, ok := m[*up]; ok {
-				if err := vv.Up(*up, *number); err != nil {
+				if err := vv.Up(*up); err != nil {
 					return err
 				}
 			} else {
-				return errors.New(fmt.Sprintf("%s is notfound.", *up))
+				return fmt.Errorf("Error: Selection is %s does not exist.", *up)
 			}
 		case len(*down) > 0:
 			if vv, ok := m[*down]; ok {
-				if err := vv.Down(*down, *number); err != nil {
+				if err := vv.Down(*down); err != nil {
 					return err
 				}
 			} else {
-				return errors.New(fmt.Sprintf("%s", *down))
+				return fmt.Errorf("Error: Selection is %s does not exist.", *down)
 			}
 		}
 	}
