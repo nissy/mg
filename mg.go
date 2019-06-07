@@ -18,9 +18,6 @@ import (
 const (
 	DoUp = iota
 	DoDown
-)
-
-var (
 	TokenUp   = "@migrate.up"
 	TokenDown = "@migrate.down"
 )
@@ -35,6 +32,8 @@ type (
 		Sources           []*Source         `toml:"-"`
 		VersionTable      string            `toml:"version_table"`
 		VersionSQLBuilder VersionSQLBuilder `toml:"-"`
+		TokenUp           string            `toml:"token_up"`
+		TokenDown         string            `toml:"token_down"`
 	}
 
 	Source struct {
@@ -116,6 +115,12 @@ func (m *Migration) parse() (err error) {
 	if m.VersionSQLBuilder = FetchVersionSQLBuilder(m.Driver, m.VersionTable); m.VersionSQLBuilder == nil {
 		return errors.New("Driver does not exist.")
 	}
+	if len(m.TokenUp) == 0 {
+		m.TokenUp = TokenUp
+	}
+	if len(m.TokenDown) == 0 {
+		m.TokenDown = TokenDown
+	}
 
 	for _, v := range m.SourceDir {
 		fs, err := filepath.Glob(filepath.Join(v, "*.sql"))
@@ -131,7 +136,7 @@ func (m *Migration) parse() (err error) {
 				if err != nil {
 					return err
 				}
-				if err := s.parse(); err != nil {
+				if err := s.parse(m.TokenUp, m.TokenDown); err != nil {
 					return err
 				}
 				m.Sources = append(m.Sources, s)
@@ -148,7 +153,7 @@ func (m *Migration) parse() (err error) {
 	return nil
 }
 
-func (s *Source) parse() (err error) {
+func (s *Source) parse(tokenUp, tokenDown string) (err error) {
 	if _, f := filepath.Split(s.Path); len(f) > 0 {
 		if n := strings.SplitN(f, "_", 2); len(n) == 2 {
 			if s.Version, err = strconv.ParseUint(strings.SplitN(f, "_", 2)[0], 10, 64); err != nil {
@@ -175,11 +180,11 @@ func (s *Source) parse() (err error) {
 			return err
 		}
 		if strings.HasPrefix(line, "--") {
-			if strings.Contains(line, TokenUp) {
+			if strings.Contains(line, tokenUp) {
 				u = true
 				d = false
 			}
-			if strings.Contains(line, TokenDown) {
+			if strings.Contains(line, tokenDown) {
 				u = false
 				d = true
 			}

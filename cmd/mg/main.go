@@ -4,7 +4,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/nissy/mg"
@@ -19,7 +18,9 @@ var (
 
 func main() {
 	if err := run(); err != nil {
-		log.Fatalf("Error: %s", err.Error())
+		if _, perr := fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error()); perr != nil {
+			panic(err)
+		}
 	}
 }
 
