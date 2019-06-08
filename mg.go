@@ -34,6 +34,7 @@ type (
 		VersionSQLBuilder VersionSQLBuilder `toml:"-"`
 		TokenUp           string            `toml:"token_up"`
 		TokenDown         string            `toml:"token_down"`
+		Apply             bool              `toml:"-"`
 	}
 
 	Source struct {
@@ -41,6 +42,7 @@ type (
 		DownSQL string
 		Path    string
 		Version uint64
+		Apply   bool
 	}
 )
 
@@ -49,7 +51,7 @@ func ReadConfig(filename string) (mg Mg, err error) {
 	return mg, err
 }
 
-func (m *Migration) Exec(do int) (err error) {
+func (m *Migration) Exec(section string, do int) (err error) {
 	if err := m.parse(); err != nil {
 		return err
 	}
@@ -105,7 +107,13 @@ func (m *Migration) Exec(do int) (err error) {
 			return err
 		}
 
+		v.Apply = true
+		m.Apply = true
 		fmt.Printf("OK %s\n", v.Path)
+	}
+
+	if !m.Apply {
+		fmt.Printf("%s is nothing to apply migration.\n", section)
 	}
 
 	return nil

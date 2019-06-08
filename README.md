@@ -5,10 +5,15 @@ mg is database migrations command.
 
 up
 ```bash
-$ mg -up development
+$ mg up development
 ```
 
 down
 ```bash
-$ mg -down development
+$ mg down development
+```
+
+status
+```bash
+$ mg status development
 ```

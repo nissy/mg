@@ -51,7 +51,7 @@ func (v *vPostgres) DeleteApplied(version uint64) string {
 
 func (v *vPostgres) CreateTable() string {
 	return fmt.Sprintf(
-		"CREATE TABLE %s (applied_version BIGSERIAL PRIMARY KEY, created_at timestamp with time zone NOT NULL DEFAULT now());",
+		"CREATE TABLE IF NOT EXISTS %s (applied_version BIGSERIAL PRIMARY KEY, created_at timestamp with time zone NOT NULL DEFAULT now());",
 		v.table,
 	)
 }

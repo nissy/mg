@@ -10,8 +10,10 @@ import (
 )
 
 var (
-	cfgFile = flag.String("c", "mg.toml", "set configuration file.")
-	isHelp  = flag.Bool("h", false, "this help")
+	cfgFile   = flag.String("c", "mg.toml", "")
+	isHelp    = flag.Bool("h", false, "")
+	isVersion = flag.Bool("v", false, "")
+	version   = "dev"
 )
 
 func main() {
@@ -29,6 +31,10 @@ func run() (err error) {
 		_, err := fmt.Fprint(os.Stderr, help)
 		return err
 	}
+	if *isVersion {
+		fmt.Printf("Version is %s\n", version)
+		return nil
+	}
 
 	if len(*cfgFile) > 0 {
 		m, err := mg.ReadConfig(*cfgFile)
@@ -41,7 +47,7 @@ func run() (err error) {
 				switch args[0] {
 				case "up":
 					if vv, ok := m[args[i]]; ok {
-						if err := vv.Exec(mg.DoUp); err != nil {
+						if err := vv.Exec(args[i], mg.DoUp); err != nil {
 							return err
 						}
 					} else {
@@ -49,32 +55,34 @@ func run() (err error) {
 					}
 				case "down":
 					if vv, ok := m[args[i]]; ok {
-						if err := vv.Exec(mg.DoDown); err != nil {
+						if err := vv.Exec(args[i], mg.DoDown); err != nil {
 							return err
 						}
 					} else {
 						return fmt.Errorf("Selection is %s does not exist.", args[i])
 					}
 				default:
-					return fmt.Errorf("Subcommand is %s does not exist.", args[0])
+					return fmt.Errorf("Command is %s does not exist.", args[0])
 				}
 			}
+		} else {
+			return errors.New("Command is incorrect.")
 		}
-
-		return errors.New("Command is incorrect.")
 	}
 
 	return nil
 }
 
-var help = `usage:
-    mg [options] <command> [sections]
-options:
+var help = `Usage:
+    mg [options] <command> [sections...]
+Options:
     -c string
         set configuration file. (default "mg.toml")
     -h bool
         this help.
-commands:
+    -v bool
+        show version and exit.
+Commands:
     up      Migrate the DB to the most recent version available
     down    Roll back the version by 1
 `
