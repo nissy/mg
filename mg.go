@@ -49,7 +49,7 @@ func ReadConfig(filename string) (mg Mg, err error) {
 	return mg, err
 }
 
-func (m *Migration) Exec(name string, do int) (err error) {
+func (m *Migration) Exec(do int) (err error) {
 	if err := m.parse(); err != nil {
 		return err
 	}

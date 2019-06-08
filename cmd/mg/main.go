@@ -11,8 +11,6 @@ import (
 
 var (
 	cfgFile = flag.String("c", "mg.toml", "set configuration file.")
-	up      = flag.String("up", "", "up migrations.")
-	down    = flag.String("down", "", "down migrations.")
 	isHelp  = flag.Bool("h", false, "this help")
 )
 
@@ -28,11 +26,8 @@ func run() (err error) {
 	flag.Parse()
 
 	if *isHelp {
-		if _, err := fmt.Fprintf(os.Stderr, "Usage: %s [options]\n", os.Args[0]); err != nil {
-			panic(err)
-		}
-		flag.PrintDefaults()
-		return nil
+		_, err := fmt.Fprint(os.Stderr, help)
+		return err
 	}
 
 	if len(*cfgFile) > 0 {
@@ -41,27 +36,45 @@ func run() (err error) {
 			return err
 		}
 
-		switch {
-		case len(*up) > 0:
-			if vv, ok := m[*up]; ok {
-				if err := vv.Exec(*up, mg.DoUp); err != nil {
-					return err
+		if args := flag.Args(); len(args) >= 2 {
+			for i := 1; i < len(args); i++ {
+				switch args[0] {
+				case "up":
+					if vv, ok := m[args[i]]; ok {
+						if err := vv.Exec(mg.DoUp); err != nil {
+							return err
+						}
+					} else {
+						return fmt.Errorf("Selection is %s does not exist.", args[i])
+					}
+				case "down":
+					if vv, ok := m[args[i]]; ok {
+						if err := vv.Exec(mg.DoDown); err != nil {
+							return err
+						}
+					} else {
+						return fmt.Errorf("Selection is %s does not exist.", args[i])
+					}
+				default:
+					return fmt.Errorf("Subcommand is %s does not exist.", args[0])
 				}
-			} else {
-				return fmt.Errorf("Selection is %s does not exist.", *up)
 			}
-		case len(*down) > 0:
-			if vv, ok := m[*down]; ok {
-				if err := vv.Exec(*down, mg.DoDown); err != nil {
-					return err
-				}
-			} else {
-				return fmt.Errorf("Selection is %s does not exist.", *down)
-			}
-		default:
-			return errors.New("Please specify an option.")
 		}
+
+		return errors.New("Command is incorrect.")
 	}
 
 	return nil
 }
+
+var help = `usage:
+    mg [options] <command> [sections]
+options:
+    -c string
+        set configuration file. (default "mg.toml")
+    -h bool
+        this help.
+commands:
+    up      Migrate the DB to the most recent version available
+    down    Roll back the version by 1
+`
