@@ -1,6 +1,23 @@
 # mg
 mg is database migrations command.
 
+### config
+
+mg.toml
+```toml
+[production]
+  driver = "postgres"
+  dsn = "postgres://user:password@hostname:5432/mg?sslmode=disable"
+  source_dir = ["./db/migrate", "./db/seed"]
+  version_table = "mg_versions"
+
+[development]
+  driver = "postgres"
+  dsn = "postgres://user:password@hostname:5432/mg?sslmode=disable"
+  source_dir = ["./db/migrate", "./db/seed", "./db/test"]
+  version_table = "mg_versions"
+```
+
 ### command
 
 up
