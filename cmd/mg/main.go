@@ -47,7 +47,7 @@ func run() (err error) {
 				switch args[0] {
 				case "up":
 					if vv, ok := m[args[i]]; ok {
-						if err := vv.Exec(args[i], mg.DoUp); err != nil {
+						if err := vv.Exec(mg.UpDo); err != nil {
 							return err
 						}
 					} else {
@@ -55,7 +55,7 @@ func run() (err error) {
 					}
 				case "down":
 					if vv, ok := m[args[i]]; ok {
-						if err := vv.Exec(args[i], mg.DoDown); err != nil {
+						if err := vv.Exec(mg.DownDo); err != nil {
 							return err
 						}
 					} else {

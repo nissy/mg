@@ -3,7 +3,6 @@ package mg
 import (
 	"bufio"
 	"database/sql"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -16,24 +15,26 @@ import (
 )
 
 const (
-	DoUp = iota
-	DoDown
-	TokenUp   = "@migrate.up"
-	TokenDown = "@migrate.down"
+	UpDo = iota
+	DownDo
+
+	UpToken   = "@migrate.up"
+	DownToken = "@migrate.down"
 )
 
 type (
 	Mg map[string]*Migration
 
 	Migration struct {
+		Section           string            `toml:"-"`
 		Driver            string            `toml:"driver"`
 		DSN               string            `toml:"dsn"`
 		SourceDir         []string          `toml:"source_dir"`
 		Sources           []*Source         `toml:"-"`
 		VersionTable      string            `toml:"version_table"`
 		VersionSQLBuilder VersionSQLBuilder `toml:"-"`
-		TokenUp           string            `toml:"token_up"`
-		TokenDown         string            `toml:"token_down"`
+		TokenUp           string            `toml:"up_token"`
+		TokenDown         string            `toml:"down_token"`
 		Apply             bool              `toml:"-"`
 	}
 
@@ -47,11 +48,26 @@ type (
 )
 
 func ReadConfig(filename string) (mg Mg, err error) {
-	_, err = toml.DecodeFile(filename, &mg)
+	if _, err = toml.DecodeFile(filename, &mg); err != nil {
+		return nil, err
+	}
+	for s, m := range mg {
+		m.Section = s
+		if m.VersionSQLBuilder = FetchVersionSQLBuilder(m.Driver, m.VersionTable); m.VersionSQLBuilder == nil {
+			return nil, fmt.Errorf("Driver is %s does not exist.", m.Driver)
+		}
+		if len(m.TokenUp) == 0 {
+			m.TokenUp = UpToken
+		}
+		if len(m.TokenDown) == 0 {
+			m.TokenDown = DownToken
+		}
+	}
+
 	return mg, err
 }
 
-func (m *Migration) Exec(section string, do int) (err error) {
+func (m *Migration) Exec(do int) (err error) {
 	if err := m.parse(); err != nil {
 		return err
 	}
@@ -72,13 +88,13 @@ func (m *Migration) Exec(section string, do int) (err error) {
 	for _, v := range m.Sources {
 		var mSQL, vSQL string
 		switch do {
-		case DoUp:
+		case UpDo:
 			if lastVersion >= v.Version {
 				continue
 			}
 			mSQL = v.UpSQL
 			vSQL = m.VersionSQLBuilder.InsretApplied(v.Version)
-		case DoDown:
+		case DownDo:
 			if lastVersion != v.Version {
 				continue
 			}
@@ -113,23 +129,13 @@ func (m *Migration) Exec(section string, do int) (err error) {
 	}
 
 	if !m.Apply {
-		fmt.Printf("%s is nothing to apply migration.\n", section)
+		fmt.Printf("%s is nothing to apply migration.\n", m.Section)
 	}
 
 	return nil
 }
 
 func (m *Migration) parse() (err error) {
-	if m.VersionSQLBuilder = FetchVersionSQLBuilder(m.Driver, m.VersionTable); m.VersionSQLBuilder == nil {
-		return errors.New("Driver does not exist.")
-	}
-	if len(m.TokenUp) == 0 {
-		m.TokenUp = TokenUp
-	}
-	if len(m.TokenDown) == 0 {
-		m.TokenDown = TokenDown
-	}
-
 	for _, v := range m.SourceDir {
 		fs, err := filepath.Glob(filepath.Join(v, "*.sql"))
 		if err != nil {
@@ -140,10 +146,6 @@ func (m *Migration) parse() (err error) {
 				Path: vv,
 			}
 			if _, f := filepath.Split(vv); len(f) > 0 {
-				s.Version, err = strconv.ParseUint(strings.SplitN(f, "_", 2)[0], 10, 64)
-				if err != nil {
-					return err
-				}
 				if err := s.parse(m.TokenUp, m.TokenDown); err != nil {
 					return err
 				}
@@ -163,7 +165,7 @@ func (m *Migration) parse() (err error) {
 
 func (s *Source) parse(tokenUp, tokenDown string) (err error) {
 	if _, f := filepath.Split(s.Path); len(f) > 0 {
-		if s.Version, err = FileNameToVersion(f); err != nil {
+		if s.Version, err = fileNameToVersion(f); err != nil {
 			return err
 		}
 	}
@@ -210,7 +212,7 @@ func (s *Source) parse(tokenUp, tokenDown string) (err error) {
 	return err
 }
 
-func FileNameToVersion(filename string) (version uint64, err error) {
+func fileNameToVersion(filename string) (version uint64, err error) {
 	i := 0
 	for _, v := range filename {
 		if v >= 48 && v <= 57 {
