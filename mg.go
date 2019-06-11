@@ -163,10 +163,8 @@ func (m *Migration) parse() (err error) {
 
 func (s *Source) parse(tokenUp, tokenDown string) (err error) {
 	if _, f := filepath.Split(s.Path); len(f) > 0 {
-		if n := strings.SplitN(f, "_", 2); len(n) == 2 {
-			if s.Version, err = strconv.ParseUint(strings.SplitN(f, "_", 2)[0], 10, 64); err != nil {
-				return fmt.Errorf("Filename is version does not exist %s", s.Path)
-			}
+		if s.Version, err = FileNameToVersion(f); err != nil {
+			return err
 		}
 	}
 	if s.Version == 0 {
@@ -210,4 +208,23 @@ func (s *Source) parse(tokenUp, tokenDown string) (err error) {
 	}
 
 	return err
+}
+
+func FileNameToVersion(filename string) (version uint64, err error) {
+	i := 0
+	for _, v := range filename {
+		if v >= 48 && v <= 57 {
+			i++
+			continue
+		}
+		break
+	}
+	if i > 0 {
+		version, err = strconv.ParseUint(filename[0:i], 10, 64)
+	}
+	if err != nil || version == 0 {
+		return 0, fmt.Errorf("Filename is version does not exist %s", filename)
+	}
+
+	return version, nil
 }
