@@ -40,8 +40,9 @@ Options:
     -h bool
         this help.
     -v bool
-        show version and exit.
+        Display the mg version.
 Commands:
     up      Migrate the DB to the most recent version available
     down    Roll back the version by 1
+    status  Display the status of Migrate.
 ```

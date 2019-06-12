@@ -61,6 +61,14 @@ func run() (err error) {
 					} else {
 						return fmt.Errorf("Selection is %s does not exist.", args[i])
 					}
+				case "status":
+					if vv, ok := m[args[i]]; ok {
+						if err := vv.Status(); err != nil {
+							return err
+						}
+					} else {
+						return fmt.Errorf("Selection is %s does not exist.", args[i])
+					}
 				default:
 					return fmt.Errorf("Command is %s does not exist.", args[0])
 				}
@@ -81,8 +89,9 @@ Options:
     -h bool
         this help.
     -v bool
-        show version and exit.
+        Display the version of mg.
 Commands:
     up      Migrate the DB to the most recent version available
     down    Roll back the version by 1
+    status  Display the status of Migrate.
 `

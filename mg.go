@@ -33,8 +33,8 @@ type (
 		Sources           []*Source         `toml:"-"`
 		VersionTable      string            `toml:"version_table"`
 		VersionSQLBuilder VersionSQLBuilder `toml:"-"`
-		TokenUp           string            `toml:"up_token"`
-		TokenDown         string            `toml:"down_token"`
+		UpToken           string            `toml:"up_token"`
+		DownToken         string            `toml:"down_token"`
 		Apply             bool              `toml:"-"`
 	}
 
@@ -56,15 +56,41 @@ func ReadConfig(filename string) (mg Mg, err error) {
 		if m.VersionSQLBuilder = FetchVersionSQLBuilder(m.Driver, m.VersionTable); m.VersionSQLBuilder == nil {
 			return nil, fmt.Errorf("Driver is %s does not exist.", m.Driver)
 		}
-		if len(m.TokenUp) == 0 {
-			m.TokenUp = UpToken
+		if len(m.UpToken) == 0 {
+			m.UpToken = UpToken
 		}
-		if len(m.TokenDown) == 0 {
-			m.TokenDown = DownToken
+		if len(m.DownToken) == 0 {
+			m.DownToken = DownToken
 		}
 	}
 
 	return mg, err
+}
+
+func (m *Migration) Status() (err error) {
+	if err := m.parse(); err != nil {
+		return err
+	}
+
+	db, err := sql.Open(m.Driver, m.DSN)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	var lastVersion uint64
+	if err := db.QueryRow(m.VersionSQLBuilder.FetchLastApplied()).Scan(&lastVersion); err != nil {
+		fmt.Println(err.Error())
+	}
+	fmt.Printf("Version status to %s:\n\tcurrent: %d\n", m.Section, lastVersion)
+	for _, v := range m.Sources {
+		if lastVersion >= v.Version {
+			continue
+		}
+		fmt.Printf("\t\x1b[31munapplied: %d %s\x1b[0m\n", v.Version, v.Path)
+	}
+
+	return nil
 }
 
 func (m *Migration) Exec(do int) (err error) {
@@ -113,7 +139,7 @@ func (m *Migration) Exec(do int) (err error) {
 			if rerr := tx.Rollback(); rerr != nil {
 				panic(rerr)
 			}
-			fmt.Printf("NG %s\n", v.Path)
+			fmt.Printf("\x1b[31mNG %s\x1b[0m\n", v.Path)
 			return err
 		}
 		if err := tx.Commit(); err != nil {
@@ -129,7 +155,7 @@ func (m *Migration) Exec(do int) (err error) {
 	}
 
 	if !m.Apply {
-		fmt.Printf("%s is nothing to apply migration.\n", m.Section)
+		fmt.Printf("%s has no version to migration.\n", m.Section)
 	}
 
 	return nil
@@ -146,7 +172,7 @@ func (m *Migration) parse() (err error) {
 				Path: vv,
 			}
 			if _, f := filepath.Split(vv); len(f) > 0 {
-				if err := s.parse(m.TokenUp, m.TokenDown); err != nil {
+				if err := s.parse(m.UpToken, m.DownToken); err != nil {
 					return err
 				}
 				m.Sources = append(m.Sources, s)
