@@ -30,6 +30,15 @@ down
 $ mg down development
 ```
 
+status
+```bash
+$ mg status development
+Version status to development:
+        current: 2019060614343920
+        unapplied: 2019060819341935 migrates/2019060819341935_users.sql
+        unapplied: 2019060819341948 seeds/2019060819341948_users.sql
+```
+
 ### help
 ```
 Usage:
