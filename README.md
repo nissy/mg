@@ -1,6 +1,12 @@
 # mg
 mg is database migrations command.
 
+### install
+
+```bash
+$ brew install nissy/mg/mg
+```
+
 ### config
 
 mg.toml
