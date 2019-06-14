@@ -85,13 +85,13 @@ var help = `Usage:
     mg [options] <command> [sections...]
 Options:
     -c string
-        set configuration file. (default "mg.toml")
+        Set configuration file. (default "mg.toml")
     -h bool
-        this help.
+        This help.
     -v bool
         Display the version of mg.
 Commands:
     up      Migrate the DB to the most recent version available
     down    Roll back the version by 1
-    status  Display the status of Migrate.
+    status  Display the status of migrate.
 `

@@ -91,7 +91,7 @@ func (m *Migration) Do(do int) (err error) {
 		}
 	}
 
-	var applied []string
+	var unApplied []string
 	for _, v := range m.Sources {
 		var mSQL, vSQL string
 		switch do {
@@ -111,7 +111,7 @@ func (m *Migration) Do(do int) (err error) {
 			if lastVersion >= v.Version {
 				continue
 			}
-			applied = append(applied,
+			unApplied = append(unApplied,
 				fmt.Sprintf("        \x1b[33m%d %s\x1b[0m\n", v.Version, v.Path),
 			)
 			continue
@@ -146,9 +146,9 @@ func (m *Migration) Do(do int) (err error) {
 	switch do {
 	case StatusDo:
 		fmt.Printf("Version of %s:\n    current:\n        %d\n", m.Section, lastVersion)
-		if len(applied) > 0 {
+		if len(unApplied) > 0 {
 			fmt.Println("    \x1b[33munapplied:\x1b[0m")
-			fmt.Print(strings.Join(applied, ""))
+			fmt.Print(strings.Join(unApplied, ""))
 		}
 	case UpDo, DownDo:
 		if !m.Apply {
