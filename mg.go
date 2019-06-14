@@ -17,6 +17,7 @@ import (
 const (
 	UpDo = iota
 	DownDo
+	StatusDo
 
 	UpToken   = "@migrate.up"
 	DownToken = "@migrate.down"
@@ -67,7 +68,7 @@ func ReadConfig(filename string) (mg Mg, err error) {
 	return mg, err
 }
 
-func (m *Migration) Status() (err error) {
+func (m *Migration) Do(do int) (err error) {
 	if err := m.parse(); err != nil {
 		return err
 	}
@@ -80,37 +81,17 @@ func (m *Migration) Status() (err error) {
 
 	var lastVersion uint64
 	if err := db.QueryRow(m.VersionSQLBuilder.FetchLastApplied()).Scan(&lastVersion); err != nil {
-		fmt.Println(err.Error())
-	}
-	fmt.Printf("Version status to %s:\n\tcurrent: %d\n", m.Section, lastVersion)
-	for _, v := range m.Sources {
-		if lastVersion >= v.Version {
-			continue
-		}
-		fmt.Printf("\t\x1b[31munapplied: %d %s\x1b[0m\n", v.Version, v.Path)
-	}
-
-	return nil
-}
-
-func (m *Migration) Exec(do int) (err error) {
-	if err := m.parse(); err != nil {
-		return err
-	}
-
-	db, err := sql.Open(m.Driver, m.DSN)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
-	var lastVersion uint64
-	if err := db.QueryRow(m.VersionSQLBuilder.FetchLastApplied()).Scan(&lastVersion); err != nil {
-		if _, err := db.Exec(m.VersionSQLBuilder.CreateTable()); err != nil {
-			return err
+		switch do {
+		case UpDo, DownDo:
+			if _, err := db.Exec(m.VersionSQLBuilder.CreateTable()); err != nil {
+				return err
+			}
+		case StatusDo:
+			fmt.Printf("\x1b[31m%s\x1b[0m\n", err.Error())
 		}
 	}
 
+	var applied []string
 	for _, v := range m.Sources {
 		var mSQL, vSQL string
 		switch do {
@@ -126,6 +107,14 @@ func (m *Migration) Exec(do int) (err error) {
 			}
 			mSQL = v.DownSQL
 			vSQL = m.VersionSQLBuilder.DeleteApplied(v.Version)
+		case StatusDo:
+			if lastVersion >= v.Version {
+				continue
+			}
+			applied = append(applied,
+				fmt.Sprintf("        \x1b[33m%d %s\x1b[0m\n", v.Version, v.Path),
+			)
+			continue
 		}
 		if len(mSQL) == 0 {
 			continue
@@ -139,7 +128,7 @@ func (m *Migration) Exec(do int) (err error) {
 			if rerr := tx.Rollback(); rerr != nil {
 				panic(rerr)
 			}
-			fmt.Printf("\x1b[31mNG %s\x1b[0m\n", v.Path)
+			fmt.Printf("\x1b[31mNG %s to %s\x1b[0m\n", v.Path, m.Section)
 			return err
 		}
 		if err := tx.Commit(); err != nil {
@@ -151,11 +140,20 @@ func (m *Migration) Exec(do int) (err error) {
 
 		v.Apply = true
 		m.Apply = true
-		fmt.Printf("OK %s\n", v.Path)
+		fmt.Printf("OK %s to %s\n", v.Path, m.Section)
 	}
 
-	if !m.Apply {
-		fmt.Printf("%s has no version to migration.\n", m.Section)
+	switch do {
+	case StatusDo:
+		fmt.Printf("Version of %s:\n    current:\n        %d\n", m.Section, lastVersion)
+		if len(applied) > 0 {
+			fmt.Println("    \x1b[33munapplied:\x1b[0m")
+			fmt.Print(strings.Join(applied, ""))
+		}
+	case UpDo, DownDo:
+		if !m.Apply {
+			fmt.Printf("%s has no version to migration.\n", m.Section)
+		}
 	}
 
 	return nil

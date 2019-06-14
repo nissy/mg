@@ -23,20 +23,24 @@ mg.toml
 up
 ```bash
 $ mg up development
+OK migrates/2019060819341935_users.sql to development
+OK seeds/2019060819341948_users.sql to development
 ```
 
 down
 ```bash
 $ mg down development
+OK seeds/2019060819341948_users.sql to development
 ```
 
 status
 ```bash
 $ mg status development
-Version status to development:
-        current: 2019060614343920
-        unapplied: 2019060819341935 migrates/2019060819341935_users.sql
-        unapplied: 2019060819341948 seeds/2019060819341948_users.sql
+Version of development:
+    current:
+        2019060819341935
+    unapplied:
+        2019060819341948 seeds/2019060819341948_users.sql
 ```
 
 ### help
