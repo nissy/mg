@@ -91,7 +91,7 @@ Options:
     -v bool
         Display the version of mg.
 Commands:
-    up      Migrate the DB to the most recent version available
-    down    Roll back the version by 1
+    up      Migrate to the latest version.
+    down    Roll back one version.
     status  Display the status of migrate.
 `

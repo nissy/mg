@@ -14,7 +14,7 @@ $ brew install nissy/mg/mg
 
 ### config
 
-- default read is `mg.toml` in current directory
+- default config read is `mg.toml` in current directory
 - `${PASSWORD}` and `${HOSTNAME}` are set from environment variables
 
 ```toml
@@ -31,22 +31,33 @@ $ brew install nissy/mg/mg
   version_table = "mg_versions"
 ```
 
-### command
+### commands
 
-up
+ `mg [options] <command> [sections...]`
+
+#### up
+
+migrate to the latest version.
+
 ```bash
 $ mg up development
 OK migrates/2019060819341935_users.sql to development
 OK seeds/2019060819341948_users.sql to development
 ```
 
-down
+#### down
+
+roll back one version.
+
 ```bash
 $ mg down development
 OK seeds/2019060819341948_users.sql to development
 ```
 
-status
+#### status
+
+display the status of migrate.
+
 ```bash
 $ mg status development
 Version of development:
@@ -68,7 +79,7 @@ Options:
     -v bool
         Display the version of mg.
 Commands:
-    up      Migrate the DB to the most recent version available
-    down    Roll back the version by 1
+    up      Migrate to the latest version.
+    down    Roll back one version.
     status  Display the status of migrate.
 ```
