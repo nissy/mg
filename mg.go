@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
+	"github.com/nissy/envexpand"
 )
 
 const (
@@ -64,8 +65,12 @@ func ReadConfig(filename string) (mg Mg, err error) {
 			m.DownToken = DownToken
 		}
 	}
+	envexpand.CompileRegexp(`\$\{[a-zA-Z_]{1,}[a-zA-Z0-9_]{0,}\}`)
+	if err := envexpand.Do(&mg); err != nil {
+		return nil, err
+	}
 
-	return mg, err
+	return mg, nil
 }
 
 func (m *Migration) Do(do int) (err error) {
