@@ -14,11 +14,13 @@ $ brew install nissy/mg/mg
 
 ### config
 
-mg.toml
+- default read is `mg.toml` in current directory
+- `${PASSWORD}` and `${HOSTNAME}` are set from environment variables
+
 ```toml
 [production]
   driver = "postgres"
-  dsn = "postgres://user:password@hostname:5432/mg?sslmode=disable"
+  dsn = "postgres://user:${PASSWORD}@${HOSTNAME}:5432/mg?sslmode=disable"
   source_dir = ["./db/migrate", "./db/seed"]
   version_table = "mg_versions"
 
