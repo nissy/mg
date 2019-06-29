@@ -1,17 +1,17 @@
 [postgres-sample]
   driver = "postgres"
   dsn = "postgres://user:password@127.0.0.1:5432/dbname?sslmode=disable"
-  source_dir = ["./data/migrates", "./data/seeds"]
+  source_dir = ["./testdata/postgres/migrates", "./testdata/postgres/seeds"]
   version_table = "migration_versions"
 
 [mysql-sample]
   driver = "mysql"
   dsn = "user:password@tcp(127.0.0.1:3306)/dbname"
-  source_dir = ["./data/migrates", "./data/seeds"]
+  source_dir = ["./testdata/mysql/migrates", "./testdata/mysql/seeds"]
   version_table = "migration_versions"
 
 [environment-variable-sample]
   driver = "postgres"
   dsn = "postgres://user:${PASSWORD}@${HOSTNAME}:5432/dbname?sslmode=disable"
-  source_dir = ["./data/migrates", "./data/seeds"]
+  source_dir = ["./testdata/postgres/migrates", "./testdata/postgres/seeds"]
   version_table = "migration_versions"
