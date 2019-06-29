@@ -1,5 +1,5 @@
 NAME = mg
-VERSION ?= v0.0.5
+VERSION ?= v0.0.6
 GOOS := $(shell go env GOOS)
 GOARCH := $(shell go env GOARCH)
 
@@ -21,11 +21,28 @@ go-test:
 	sleep 5
 	go test ./...
 
-database-up: postgres-up
-database-down: postgres-down
+database-up: postgres-up mysql-up
+database-down: postgres-down mysql-down
 
 postgres-up:
-	docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=test --name=$(NAME)-postgres postgres:9.6
+	docker run -d \
+		-p 5432:5432 \
+		-e POSTGRES_DB=dbname	\
+		-e POSTGRES_USER=user \
+		-e POSTGRES_PASSWORD=password \
+		--name=$(NAME)-postgres postgres:9.6
 
 postgres-down:
 	docker rm -f $(NAME)-postgres
+
+mysql-up:
+	docker run -d \
+	 	-p 3306:3306 \
+		-e MYSQL_DATABASE=dbname \
+		-e MYSQL_USER=user \
+		-e MYSQL_PASSWORD=password \
+		-e MYSQL_ROOT_PASSWORD=password \
+		--name=$(NAME)-mysql mysql:5.7
+
+mysql-down:
+	docker rm -f $(NAME)-mysql
