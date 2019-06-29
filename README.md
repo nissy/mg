@@ -1,6 +1,11 @@
 # mg
 mg is database migrations command.
 
+support databases
+- PostgreSQL
+- MySQL
+
+
 ### install
 
 ```bash

@@ -1,11 +1,11 @@
-[production]
+[postgres-sample]
   driver = "postgres"
-  dsn = "postgres://user:password@hostname:5432/mg?sslmode=disable"
-  source_dir = ["./db/migrate", "./db/seed"]
-  version_table = "mg_versions"
+  dsn = "postgres://user:password@127.0.0.1:5432/dbname?sslmode=disable"
+  source_dir = ["./data/migrates", "./data/seeds"]
+  version_table = "migration_versions"
 
-[development]
-  driver = "postgres"
-  dsn = "postgres://user:password@hostname:5432/mg?sslmode=disable"
-  source_dir = ["./db/migrate", "./db/seed", "./db/test"]
-  version_table = "mg_versions"
+[mysql-sample]
+  driver = "mysql"
+  dsn = "user:password@tcp(127.0.0.1:3306)/dbname"
+  source_dir = ["./data/migrates", "./data/seeds"]
+  version_table = "migration_versions"

@@ -19,8 +19,8 @@ const (
 	DownDo
 	StatusDo
 
-	UpToken   = "@migrate.up"
-	DownToken = "@migrate.down"
+	UpMark   = "@migrate.up"
+	DownMark = "@migrate.down"
 )
 
 type (
@@ -34,8 +34,8 @@ type (
 		Sources           []*Source         `toml:"-"`
 		VersionTable      string            `toml:"version_table"`
 		VersionSQLBuilder VersionSQLBuilder `toml:"-"`
-		UpToken           string            `toml:"up_token"`
-		DownToken         string            `toml:"down_token"`
+		UpMark            string            `toml:"up_mark"`
+		DownMark          string            `toml:"down_mark"`
 		Apply             bool              `toml:"-"`
 	}
 
@@ -57,11 +57,11 @@ func ReadConfig(filename string) (mg Mg, err error) {
 		if m.VersionSQLBuilder = FetchVersionSQLBuilder(m.Driver, m.VersionTable); m.VersionSQLBuilder == nil {
 			return nil, fmt.Errorf("Driver is %s does not exist.", m.Driver)
 		}
-		if len(m.UpToken) == 0 {
-			m.UpToken = UpToken
+		if len(m.UpMark) == 0 {
+			m.UpMark = UpMark
 		}
-		if len(m.DownToken) == 0 {
-			m.DownToken = DownToken
+		if len(m.DownMark) == 0 {
+			m.DownMark = DownMark
 		}
 	}
 	if err := envexpand.Do(&mg); err != nil {
@@ -175,7 +175,7 @@ func (m *Migration) parse() (err error) {
 				Path: vv,
 			}
 			if _, f := filepath.Split(vv); len(f) > 0 {
-				if err := s.parse(m.UpToken, m.DownToken); err != nil {
+				if err := s.parse(m.UpMark, m.DownMark); err != nil {
 					return err
 				}
 				m.Sources = append(m.Sources, s)
@@ -192,9 +192,9 @@ func (m *Migration) parse() (err error) {
 	return nil
 }
 
-func (s *Source) parse(tokenUp, tokenDown string) (err error) {
+func (s *Source) parse(upMark, downMark string) (err error) {
 	if _, f := filepath.Split(s.Path); len(f) > 0 {
-		if s.Version, err = fileNameToVersion(f); err != nil {
+		if s.Version, err = filenameToVersion(f); err != nil {
 			return err
 		}
 	}
@@ -217,11 +217,11 @@ func (s *Source) parse(tokenUp, tokenDown string) (err error) {
 			return err
 		}
 		if strings.HasPrefix(line, "--") {
-			if strings.Contains(line, tokenUp) {
+			if strings.Contains(line, upMark) {
 				u = true
 				d = false
 			}
-			if strings.Contains(line, tokenDown) {
+			if strings.Contains(line, downMark) {
 				u = false
 				d = true
 			}
@@ -241,7 +241,7 @@ func (s *Source) parse(tokenUp, tokenDown string) (err error) {
 	return err
 }
 
-func fileNameToVersion(filename string) (version uint64, err error) {
+func filenameToVersion(filename string) (version uint64, err error) {
 	i := 0
 	for _, v := range filename {
 		if v >= 48 && v <= 57 {
