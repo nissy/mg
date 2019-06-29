@@ -51,7 +51,7 @@ $ brew install nissy/mg/mg
 migrate to the latest version.
 
 ```bash
-$ mg up development
+$ mg up postgres-sample
 OK migrates/2019060819341935_users.sql to development
 OK seeds/2019060819341948_users.sql to development
 ```
@@ -61,7 +61,7 @@ OK seeds/2019060819341948_users.sql to development
 back to previous version.
 
 ```bash
-$ mg down development
+$ mg down postgres-sample
 OK seeds/2019060819341948_users.sql to development
 ```
 
@@ -70,8 +70,8 @@ OK seeds/2019060819341948_users.sql to development
 display the status of migrate.
 
 ```bash
-$ mg status development
-Version of development:
+$ mg status postgres-sample
+Version of postgres-sample:
     current:
         2019060819341935
     unapplied:
