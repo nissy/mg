@@ -14,6 +14,7 @@ $ go get -u github.com/nissy/mg/cmd/mg
 
 Mac OS X
 ```bash
+$ brew tap nissy/mg
 $ brew install nissy/mg/mg
 ```
 
