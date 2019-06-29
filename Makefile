@@ -27,9 +27,9 @@ database-down: postgres-down mysql-down
 postgres-up:
 	docker run -d \
 		-p 5432:5432 \
-		-e POSTGRES_DB=test	\
-		-e POSTGRES_USER=test \
-		-e POSTGRES_PASSWORD=test \
+		-e POSTGRES_DB=dbname	\
+		-e POSTGRES_USER=user \
+		-e POSTGRES_PASSWORD=password \
 		--name=$(NAME)-postgres postgres:9.6
 
 postgres-down:
@@ -38,10 +38,10 @@ postgres-down:
 mysql-up:
 	docker run -d \
 	 	-p 3306:3306 \
-		-e MYSQL_DATABASE=test \
-		-e MYSQL_USER=test \
-		-e MYSQL_PASSWORD=test \
-		-e MYSQL_ROOT_PASSWORD=test \
+		-e MYSQL_DATABASE=dbname \
+		-e MYSQL_USER=user \
+		-e MYSQL_PASSWORD=password \
+		-e MYSQL_ROOT_PASSWORD=password \
 		--name=$(NAME)-mysql mysql:5.7
 
 mysql-down:
