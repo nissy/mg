@@ -76,7 +76,7 @@ func (m *Migration) Do(do int) (err error) {
 		return err
 	}
 
-	db, err := openSQL(m.Driver, m.DSN)
+	db, err := openDatabase(m.Driver, m.DSN)
 	if err != nil {
 		return err
 	}

@@ -24,7 +24,7 @@ type (
 	}
 )
 
-func openSQL(driver, dsn string) (*sql.DB, error) {
+func openDatabase(driver, dsn string) (*sql.DB, error) {
 	switch driver {
 	case "postgres":
 	case "mysql":
