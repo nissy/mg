@@ -92,6 +92,6 @@ Options:
         Display the version of mg.
 Commands:
     up      Migrate to the latest version.
-    down    Roll back one version.
+    down    Back to previous version.
     status  Display the status of migrate.
 `
