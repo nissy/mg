@@ -2,7 +2,6 @@ package mg
 
 import (
 	"bufio"
-	"database/sql"
 	"fmt"
 	"io"
 	"os"
@@ -65,7 +64,6 @@ func ReadConfig(filename string) (mg Mg, err error) {
 			m.DownToken = DownToken
 		}
 	}
-	envexpand.CompileRegexp(`\$\{[a-zA-Z_]{1,}[a-zA-Z0-9_]{0,}\}`)
 	if err := envexpand.Do(&mg); err != nil {
 		return nil, err
 	}
@@ -78,7 +76,7 @@ func (m *Migration) Do(do int) (err error) {
 		return err
 	}
 
-	db, err := sql.Open(m.Driver, m.DSN)
+	db, err := openSQL(m.Driver, m.DSN)
 	if err != nil {
 		return err
 	}
@@ -129,7 +127,9 @@ func (m *Migration) Do(do int) (err error) {
 		if err != nil {
 			return err
 		}
-		if _, err := tx.Exec(fmt.Sprintf("%s%s", mSQL, vSQL)); err != nil {
+
+		execSQL := fmt.Sprintf("%s%s", mSQL, vSQL)
+		if _, err := tx.Exec(execSQL); err != nil {
 			if rerr := tx.Rollback(); rerr != nil {
 				panic(rerr)
 			}

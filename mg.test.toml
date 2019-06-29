@@ -1,5 +1,11 @@
 [postgres-test]
   driver = "postgres"
-  dsn = "postgres://postgres:test@localhost:5432/postgres?sslmode=disable"
+  dsn = "postgres://test:test@localhost:5432/test?sslmode=disable"
   source_dir = ["./testdata/postgres/migrates", "./testdata/postgres/seeds"]
+  version_table = "migration_versions"
+
+[mysql-test]
+  driver = "mysql"
+  dsn = "test:test@tcp(127.0.0.1:3306)/test"
+  source_dir = ["./testdata/mysql/migrates", "./testdata/mysql/seeds"]
   version_table = "migration_versions"
