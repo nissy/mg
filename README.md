@@ -53,8 +53,8 @@ migrate to the latest version.
 
 ```bash
 $ mg up postgres-sample
-OK migrates/2019060819341935_users.sql to development
-OK seeds/2019060819341948_users.sql to development
+OK testdata/postgres/migrates/2019060819341935_users.sql to postgres-sample
+OK testdata/postgres/seeds/2019060819341948_users.sql to postgres-sample
 ```
 
 #### down
@@ -63,7 +63,7 @@ back to previous version.
 
 ```bash
 $ mg down postgres-sample
-OK seeds/2019060819341948_users.sql to development
+OK testdata/postgres/seeds/2019060819341948_users.sql to postgres-sample
 ```
 
 #### status
@@ -76,7 +76,7 @@ Version of postgres-sample:
     current:
         2019060819341935
     unapplied:
-        2019060819341948 seeds/2019060819341948_users.sql
+        2019060819341948 testdata/postgres/seeds/2019060819341948_users.sql
 ```
 
 ### help
