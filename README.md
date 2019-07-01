@@ -1,7 +1,7 @@
 # mg
 mg is database migrations command.
 
-### support databases
+support databases
 - PostgreSQL
 - MySQL
 
