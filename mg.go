@@ -19,8 +19,9 @@ const (
 	DownDo
 	StatusDo
 
-	UpMark   = "@migrate.up"
-	DownMark = "@migrate.down"
+	defaultUpPosition   = "@migrate.up"
+	defaultDownPosition = "@migrate.down"
+	defaultVersionTable = "migration_versions"
 )
 
 type (
@@ -34,8 +35,8 @@ type (
 		Sources           []*Source         `toml:"-"`
 		VersionTable      string            `toml:"version_table"`
 		VersionSQLBuilder VersionSQLBuilder `toml:"-"`
-		UpMark            string            `toml:"up_mark"`
-		DownMark          string            `toml:"down_mark"`
+		UpPosition        string            `toml:"up_position"`
+		DownPosition      string            `toml:"down_position"`
 		Apply             bool              `toml:"-"`
 	}
 
@@ -57,11 +58,14 @@ func ReadConfig(filename string) (mg Mg, err error) {
 		if m.VersionSQLBuilder = FetchVersionSQLBuilder(m.Driver, m.VersionTable); m.VersionSQLBuilder == nil {
 			return nil, fmt.Errorf("Driver is %s does not exist.", m.Driver)
 		}
-		if len(m.UpMark) == 0 {
-			m.UpMark = UpMark
+		if len(m.UpPosition) == 0 {
+			m.UpPosition = defaultUpPosition
 		}
-		if len(m.DownMark) == 0 {
-			m.DownMark = DownMark
+		if len(m.DownPosition) == 0 {
+			m.DownPosition = defaultDownPosition
+		}
+		if len(m.VersionTable) == 0 {
+			m.VersionTable = defaultVersionTable
 		}
 	}
 	if err := envexpand.Do(&mg); err != nil {
@@ -175,7 +179,7 @@ func (m *Migration) parse() (err error) {
 				Path: vv,
 			}
 			if _, f := filepath.Split(vv); len(f) > 0 {
-				if err := s.parse(m.UpMark, m.DownMark); err != nil {
+				if err := s.parse(m.UpPosition, m.DownPosition); err != nil {
 					return err
 				}
 				m.Sources = append(m.Sources, s)
@@ -192,7 +196,7 @@ func (m *Migration) parse() (err error) {
 	return nil
 }
 
-func (s *Source) parse(upMark, downMark string) (err error) {
+func (s *Source) parse(upPosition, downPosition string) (err error) {
 	if _, f := filepath.Split(s.Path); len(f) > 0 {
 		if s.Version, err = filenameToVersion(f); err != nil {
 			return err
@@ -217,11 +221,11 @@ func (s *Source) parse(upMark, downMark string) (err error) {
 			return err
 		}
 		if strings.HasPrefix(line, "--") {
-			if strings.Contains(line, upMark) {
+			if strings.Contains(line, upPosition) {
 				u = true
 				d = false
 			}
-			if strings.Contains(line, downMark) {
+			if strings.Contains(line, downPosition) {
 				u = false
 				d = true
 			}

@@ -1,17 +1,34 @@
 [postgres-sample]
   driver = "postgres"
   dsn = "postgres://user:password@127.0.0.1:5432/dbname?sslmode=disable"
-  source_dir = ["./testdata/postgres/migrates", "./testdata/postgres/seeds"]
-  version_table = "migration_versions"
+  source_dir = [
+    "./testdata/postgres/migrates",
+    "./testdata/postgres/seeds"
+  ]
 
 [mysql-sample]
   driver = "mysql"
   dsn = "user:password@tcp(127.0.0.1:3306)/dbname"
-  source_dir = ["./testdata/mysql/migrates", "./testdata/mysql/seeds"]
-  version_table = "migration_versions"
+  source_dir = [
+    "./testdata/mysql/migrates",
+    "./testdata/mysql/seeds"
+  ]
 
 [environment-variable-sample]
   driver = "postgres"
   dsn = "postgres://user:${PASSWORD}@${HOSTNAME}:5432/dbname?sslmode=disable"
-  source_dir = ["./testdata/postgres/migrates", "./testdata/postgres/seeds"]
-  version_table = "migration_versions"
+  source_dir = [
+    "./testdata/postgres/migrates",
+    "./testdata/postgres/seeds"
+  ]
+
+[option-sample]
+  driver = "postgres"
+  dsn = "postgres://user:${PASSWORD}@${HOSTNAME}:5432/dbname?sslmode=disable"
+  source_dir = [
+    "./testdata/postgres/migrates",
+    "./testdata/postgres/seeds"
+  ]
+  up_position = "+goose Up"
+  down_position = "+goose Down"
+  version_table = "mg_versions"

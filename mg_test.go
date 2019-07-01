@@ -2,7 +2,7 @@ package mg
 
 import "testing"
 
-func TestFileNameToVersion(t *testing.T) {
+func TestFilenameToVersion(t *testing.T) {
 	for version, filename := range map[uint64]string{
 		1:   "0000001.sql",
 		200: "200_aaa.sql",

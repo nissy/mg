@@ -1,10 +1,9 @@
 # mg
 mg is database migrations command.
 
-support databases
+### support databases
 - PostgreSQL
 - MySQL
-
 
 ### install
 
@@ -27,20 +26,53 @@ $ brew install nissy/mg/mg
 [postgres-sample]
   driver = "postgres"
   dsn = "postgres://user:password@127.0.0.1:5432/dbname?sslmode=disable"
-  source_dir = ["./testdata/postgres/migrates", "./testdata/postgres/seeds"]
-  version_table = "migration_versions"
+  source_dir = [
+    "./testdata/postgres/migrates",
+    "./testdata/postgres/seeds"
+  ]
 
 [mysql-sample]
   driver = "mysql"
   dsn = "user:password@tcp(127.0.0.1:3306)/dbname"
-  source_dir = ["./testdata/mysql/migrates", "./testdata/mysql/seeds"]
-  version_table = "migration_versions"
+  source_dir = [
+    "./testdata/mysql/migrates",
+    "./testdata/mysql/seeds"
+  ]
 
 [environment-variable-sample]
   driver = "postgres"
   dsn = "postgres://user:${PASSWORD}@${HOSTNAME}:5432/dbname?sslmode=disable"
-  source_dir = ["./testdata/postgres/migrates", "./testdata/postgres/seeds"]
-  version_table = "migration_versions"
+  source_dir = [
+    "./testdata/postgres/migrates",
+    "./testdata/postgres/seeds"
+  ]
+
+[option-sample]
+  driver = "postgres"
+  dsn = "postgres://user:${PASSWORD}@${HOSTNAME}:5432/dbname?sslmode=disable"
+  source_dir = [
+    "./testdata/postgres/migrates",
+    "./testdata/postgres/seeds"
+  ]
+  up_position = "+goose Up"
+  down_position = "+goose Down"
+  version_table = "mg_versions"
+```
+
+### source sql
+
+```sql
+-- @migrate.up
+CREATE TABLE users (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  name varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  created_at datetime DEFAULT NULL,
+  updated_at datetime DEFAULT NULL,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB;
+
+-- @migrate.down
+DROP TABLE users;
 ```
 
 ### commands
