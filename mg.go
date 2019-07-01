@@ -10,8 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/BurntSushi/toml"
-	"github.com/nissy/envexpand"
+	"github.com/nissy/envexpand/toml"
 )
 
 const (
@@ -50,13 +49,13 @@ type (
 )
 
 func ReadConfig(filename string) (mg Mg, err error) {
-	if _, err = toml.DecodeFile(filename, &mg); err != nil {
+	if err = toml.Open(filename, &mg); err != nil {
 		return nil, err
 	}
 	for s, m := range mg {
 		m.Section = s
-		if m.VersionSQLBuilder = FetchVersionSQLBuilder(m.Driver, m.VersionTable); m.VersionSQLBuilder == nil {
-			return nil, fmt.Errorf("Driver is %s does not exist.", m.Driver)
+		if len(m.VersionTable) == 0 {
+			m.VersionTable = defaultVersionTable
 		}
 		if len(m.UpPosition) == 0 {
 			m.UpPosition = defaultUpPosition
@@ -64,12 +63,9 @@ func ReadConfig(filename string) (mg Mg, err error) {
 		if len(m.DownPosition) == 0 {
 			m.DownPosition = defaultDownPosition
 		}
-		if len(m.VersionTable) == 0 {
-			m.VersionTable = defaultVersionTable
+		if m.VersionSQLBuilder = FetchVersionSQLBuilder(m.Driver, m.VersionTable); m.VersionSQLBuilder == nil {
+			return nil, fmt.Errorf("Driver is %s does not exist.", m.Driver)
 		}
-	}
-	if err := envexpand.Do(&mg); err != nil {
-		return nil, err
 	}
 
 	return mg, nil
