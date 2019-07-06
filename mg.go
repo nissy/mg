@@ -2,6 +2,7 @@ package mg
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -48,27 +49,39 @@ type (
 	}
 )
 
-func ReadConfig(filename string) (mg Mg, err error) {
+func OpenCfg(filename string) (mg Mg, err error) {
 	if err = toml.Open(filename, &mg); err != nil {
 		return nil, err
 	}
 	for s, m := range mg {
-		m.Section = s
-		if len(m.VersionTable) == 0 {
-			m.VersionTable = defaultVersionTable
-		}
-		if len(m.UpPosition) == 0 {
-			m.UpPosition = defaultUpPosition
-		}
-		if len(m.DownPosition) == 0 {
-			m.DownPosition = defaultDownPosition
-		}
-		if m.VersionSQLBuilder = FetchVersionSQLBuilder(m.Driver, m.VersionTable); m.VersionSQLBuilder == nil {
-			return nil, fmt.Errorf("Driver is %s does not exist.", m.Driver)
+		if err := m.init(s); err != nil {
+			return nil, err
 		}
 	}
 
 	return mg, nil
+}
+
+func (m *Migration) init(section string) error {
+	if len(section) == 0 {
+		return errors.New("Section name does not exist.")
+	}
+	m.Section = section
+
+	if len(m.VersionTable) == 0 {
+		m.VersionTable = defaultVersionTable
+	}
+	if len(m.UpPosition) == 0 {
+		m.UpPosition = defaultUpPosition
+	}
+	if len(m.DownPosition) == 0 {
+		m.DownPosition = defaultDownPosition
+	}
+	if m.VersionSQLBuilder = FetchVersionSQLBuilder(m.Driver, m.VersionTable); m.VersionSQLBuilder == nil {
+		return fmt.Errorf("Driver is %s does not exist.", m.Driver)
+	}
+
+	return nil
 }
 
 func (m *Migration) Do(do int) (err error) {
@@ -81,6 +94,10 @@ func (m *Migration) Do(do int) (err error) {
 		return err
 	}
 	defer db.Close()
+
+	if err := db.Ping(); err != nil {
+		return err
+	}
 
 	var lastVersion uint64
 	if err := db.QueryRow(m.VersionSQLBuilder.FetchLastApplied()).Scan(&lastVersion); err != nil {

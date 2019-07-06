@@ -37,7 +37,7 @@ func run() (err error) {
 	}
 
 	if len(*cfgFile) > 0 {
-		m, err := mg.ReadConfig(*cfgFile)
+		m, err := mg.OpenCfg(*cfgFile)
 		if err != nil {
 			return err
 		}
