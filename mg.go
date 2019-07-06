@@ -38,12 +38,13 @@ type (
 		UpPosition        string            `toml:"up_position"`
 		DownPosition      string            `toml:"down_position"`
 		Apply             bool              `toml:"-"`
+		OutputFormat      string            `toml:"output_format"`
 	}
 
 	Source struct {
 		UpSQL   string
 		DownSQL string
-		Path    string
+		File    string
 		Version uint64
 		Apply   bool
 	}
@@ -82,6 +83,24 @@ func (m *Migration) init(section string) error {
 	}
 
 	return nil
+}
+
+func (m *Migration) output(s *Source) string {
+	switch strings.ToUpper(m.OutputFormat) {
+	case "JSON":
+		return fmt.Sprintf(
+			`{"apply":%t,"version":%d,"section":"%s","file":"%s"}`,
+			s.Apply, s.Version, m.Section, s.File,
+		)
+	}
+	return fmt.Sprintf("%s %d to %s is %s", state(s.Apply), s.Version, m.Section, s.File)
+}
+
+func state(apply bool) string {
+	if apply {
+		return "OK"
+	}
+	return "NG"
 }
 
 func (m *Migration) Do(do int) (err error) {
@@ -132,7 +151,7 @@ func (m *Migration) Do(do int) (err error) {
 				continue
 			}
 			unApplied = append(unApplied,
-				fmt.Sprintf("        \x1b[33m%d %s\x1b[0m\n", v.Version, v.Path),
+				fmt.Sprintf("        \x1b[33m%d %s\x1b[0m\n", v.Version, v.File),
 			)
 			continue
 		}
@@ -150,7 +169,7 @@ func (m *Migration) Do(do int) (err error) {
 			if rerr := tx.Rollback(); rerr != nil {
 				panic(rerr)
 			}
-			fmt.Printf("\x1b[31mNG %s to %s\x1b[0m\n", v.Path, m.Section)
+			fmt.Println(m.output(v))
 			return err
 		}
 		if err := tx.Commit(); err != nil {
@@ -162,7 +181,7 @@ func (m *Migration) Do(do int) (err error) {
 
 		v.Apply = true
 		m.Apply = true
-		fmt.Printf("OK %s to %s\n", v.Path, m.Section)
+		fmt.Println(m.output(v))
 	}
 
 	switch do {
@@ -189,7 +208,7 @@ func (m *Migration) parse() (err error) {
 		}
 		for _, vv := range fs {
 			s := &Source{
-				Path: vv,
+				File: vv,
 			}
 			if _, f := filepath.Split(vv); len(f) > 0 {
 				if err := s.parse(m.UpPosition, m.DownPosition); err != nil {
@@ -210,16 +229,16 @@ func (m *Migration) parse() (err error) {
 }
 
 func (s *Source) parse(upPosition, downPosition string) (err error) {
-	if _, f := filepath.Split(s.Path); len(f) > 0 {
+	if _, f := filepath.Split(s.File); len(f) > 0 {
 		if s.Version, err = filenameToVersion(f); err != nil {
 			return err
 		}
 	}
 	if s.Version == 0 {
-		return fmt.Errorf("Filename is version does not exist %s", s.Path)
+		return fmt.Errorf("Filename is version does not exist %s", s.File)
 	}
 
-	file, err := os.Open(s.Path)
+	file, err := os.Open(s.File)
 	if err != nil {
 		return err
 	}
