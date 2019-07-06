@@ -1,5 +1,5 @@
 NAME = mg
-VERSION ?= v1.0.3
+VERSION ?= v1.0.4
 GOOS := $(shell go env GOOS)
 GOARCH := $(shell go env GOARCH)
 
@@ -18,7 +18,7 @@ clean:
 test: database-up go-test database-down
 
 go-test:
-	sleep 5
+	sleep 10
 	go test ./...
 
 database-up: postgres-up mysql-up

@@ -1,6 +1,26 @@
 package mg
 
-import "testing"
+import (
+	"testing"
+)
+
+func TestDo(t *testing.T) {
+	ms, err := OpenCfg("mg.sample.toml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, v := range []string{"postgres-sample", "mysql-sample"} {
+		if err := ms[v].Do(UpDo); err != nil {
+			t.Fatal(err)
+		}
+		if err := ms[v].Do(DownDo); err != nil {
+			t.Fatal(err)
+		}
+		if err := ms[v].Do(StatusDo); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
 
 func TestFilenameToVersion(t *testing.T) {
 	for version, filename := range map[uint64]string{
