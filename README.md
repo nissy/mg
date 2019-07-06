@@ -85,8 +85,8 @@ migrate to the latest version.
 
 ```bash
 $ mg up postgres-sample
-OK testdata/postgres/migrates/2019060819341935_users.sql to postgres-sample
-OK testdata/postgres/seeds/2019060819341948_users.sql to postgres-sample
+OK 2019060819341935 to postgres-sample is testdata/postgres/migrates/2019060819341935_users.sql
+OK 2019060819341948 to postgres-sample is testdata/postgres/seeds/2019060819341948_users.sql
 ```
 
 #### down
@@ -95,7 +95,7 @@ back to previous version.
 
 ```bash
 $ mg down postgres-sample
-OK testdata/postgres/seeds/2019060819341948_users.sql to postgres-sample
+OK 2019060819341948 to postgres-sample is testdata/postgres/seeds/2019060819341948_users.sql
 ```
 
 #### status
