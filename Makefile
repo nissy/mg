@@ -18,7 +18,7 @@ clean:
 test: database-up go-test database-down
 
 go-test:
-	sleep 5
+	sleep 10
 	go test ./...
 
 database-up: postgres-up mysql-up
