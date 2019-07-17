@@ -1,5 +1,5 @@
 NAME = mg
-VERSION ?= v1.0.4
+VERSION ?= v1.0.5
 GOOS := $(shell go env GOOS)
 GOARCH := $(shell go env GOARCH)
 

@@ -28,7 +28,7 @@ func TestFilenameToVersion(t *testing.T) {
 		200: "200_aaa.sql",
 		111: "111aaa.sql",
 	} {
-		if v, err := filenameToVersion(filename); err != nil || version != v {
+		if v, err := nameToVersion(filename); err != nil || version != v {
 			t.Fatalf("FileName=%s, Version=%d, WantVersion=%d", filename, version, v)
 		}
 	}

@@ -19,9 +19,9 @@ const (
 	DownDo
 	StatusDo
 
-	defaultUpPosition   = "@migrate.up"
-	defaultDownPosition = "@migrate.down"
-	defaultVersionTable = "migration_versions"
+	defaultUpAnnotation   = "@migrate.up"
+	defaultDownAnnotation = "@migrate.down"
+	defaultVersionTable   = "migration_versions"
 )
 
 type (
@@ -35,8 +35,8 @@ type (
 		Sources           []*Source         `toml:"-"`
 		VersionTable      string            `toml:"version_table"`
 		VersionSQLBuilder VersionSQLBuilder `toml:"-"`
-		UpPosition        string            `toml:"up_position"`
-		DownPosition      string            `toml:"down_position"`
+		UpAnnotation      string            `toml:"up_annotation"`
+		DownAnnotation    string            `toml:"down_annotation"`
 		Apply             bool              `toml:"-"`
 		OutputFormat      string            `toml:"output_format"`
 	}
@@ -72,11 +72,11 @@ func (m *Migration) init(section string) error {
 	if len(m.VersionTable) == 0 {
 		m.VersionTable = defaultVersionTable
 	}
-	if len(m.UpPosition) == 0 {
-		m.UpPosition = defaultUpPosition
+	if len(m.UpAnnotation) == 0 {
+		m.UpAnnotation = defaultUpAnnotation
 	}
-	if len(m.DownPosition) == 0 {
-		m.DownPosition = defaultDownPosition
+	if len(m.DownAnnotation) == 0 {
+		m.DownAnnotation = defaultDownAnnotation
 	}
 	if m.VersionSQLBuilder = FetchVersionSQLBuilder(m.Driver, m.VersionTable); m.VersionSQLBuilder == nil {
 		return fmt.Errorf("Driver is %s does not exist.", m.Driver)
@@ -211,7 +211,7 @@ func (m *Migration) parse() (err error) {
 				File: vv,
 			}
 			if _, f := filepath.Split(vv); len(f) > 0 {
-				if err := s.parse(m.UpPosition, m.DownPosition); err != nil {
+				if err := s.parse(m.UpAnnotation, m.DownAnnotation); err != nil {
 					return err
 				}
 				m.Sources = append(m.Sources, s)
@@ -228,9 +228,9 @@ func (m *Migration) parse() (err error) {
 	return nil
 }
 
-func (s *Source) parse(upPosition, downPosition string) (err error) {
+func (s *Source) parse(upAnot, downAnot string) (err error) {
 	if _, f := filepath.Split(s.File); len(f) > 0 {
-		if s.Version, err = filenameToVersion(f); err != nil {
+		if s.Version, err = nameToVersion(f); err != nil {
 			return err
 		}
 	}
@@ -253,11 +253,11 @@ func (s *Source) parse(upPosition, downPosition string) (err error) {
 			return err
 		}
 		if strings.HasPrefix(line, "--") {
-			if strings.Contains(line, upPosition) {
+			if strings.Contains(line, upAnot) {
 				u = true
 				d = false
 			}
-			if strings.Contains(line, downPosition) {
+			if strings.Contains(line, downAnot) {
 				u = false
 				d = true
 			}
@@ -277,9 +277,9 @@ func (s *Source) parse(upPosition, downPosition string) (err error) {
 	return err
 }
 
-func filenameToVersion(filename string) (version uint64, err error) {
+func nameToVersion(name string) (version uint64, err error) {
 	i := 0
-	for _, v := range filename {
+	for _, v := range name {
 		if v >= 48 && v <= 57 {
 			i++
 			continue
@@ -287,10 +287,10 @@ func filenameToVersion(filename string) (version uint64, err error) {
 		break
 	}
 	if i > 0 {
-		version, err = strconv.ParseUint(filename[0:i], 10, 64)
+		version, err = strconv.ParseUint(name[0:i], 10, 64)
 	}
 	if err != nil || version == 0 {
-		return 0, fmt.Errorf("Filename is version does not exist %s", filename)
+		return 0, fmt.Errorf("Filename is version does not exist %s", name)
 	}
 
 	return version, nil

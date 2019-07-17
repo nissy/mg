@@ -29,6 +29,6 @@
     "./testdata/postgres/migrates",
     "./testdata/postgres/seeds"
   ]
-  up_position = "+goose Up"
-  down_position = "+goose Down"
+  up_annotation = "+goose Up"
+  down_annotation = "+goose Down"
   version_table = "mg_versions"
