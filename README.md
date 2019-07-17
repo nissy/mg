@@ -38,6 +38,14 @@ $ brew install nissy/mg/mg
     "./testdata/mysql/migrates",
     "./testdata/mysql/seeds"
   ]
+
+[environment-variable-sample]
+  driver = "postgres"
+  dsn = "postgres://user:${PASSWORD}@${HOSTNAME}:5432/dbname?sslmode=disable"
+  source_dir = [
+    "./testdata/postgres/migrates",
+    "./testdata/postgres/seeds"
+  ]
 ```
 
 ### source sql
