@@ -32,3 +32,4 @@
   up_annotation = "+goose Up"
   down_annotation = "+goose Down"
   version_table = "mg_versions"
+  version_start_number = 2019060819341936
