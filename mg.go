@@ -28,17 +28,18 @@ type (
 	Mg map[string]*Migration
 
 	Migration struct {
-		Section           string            `toml:"-"`
-		Driver            string            `toml:"driver"`
-		DSN               string            `toml:"dsn"`
-		SourceDir         []string          `toml:"source_dir"`
-		Sources           []*Source         `toml:"-"`
-		VersionTable      string            `toml:"version_table"`
-		VersionSQLBuilder VersionSQLBuilder `toml:"-"`
-		UpAnnotation      string            `toml:"up_annotation"`
-		DownAnnotation    string            `toml:"down_annotation"`
-		Apply             bool              `toml:"-"`
-		OutputFormat      string            `toml:"output_format"`
+		Section            string            `toml:"-"`
+		Driver             string            `toml:"driver"`
+		DSN                string            `toml:"dsn"`
+		SourceDir          []string          `toml:"source_dir"`
+		Sources            []*Source         `toml:"-"`
+		VersionTable       string            `toml:"version_table"`
+		VersionStartNumber uint64            `toml:"version_start_number"`
+		VersionSQLBuilder  VersionSQLBuilder `toml:"-"`
+		UpAnnotation       string            `toml:"up_annotation"`
+		DownAnnotation     string            `toml:"down_annotation"`
+		Apply              bool              `toml:"-"`
+		OutputFormat       string            `toml:"output_format"`
 	}
 
 	Source struct {
@@ -128,6 +129,9 @@ func (m *Migration) Do(do int) (err error) {
 		case StatusDo:
 			fmt.Printf("\x1b[31m%s\x1b[0m\n", err.Error())
 		}
+	}
+	if lastVersion < m.VersionStartNumber {
+		lastVersion = m.VersionStartNumber
 	}
 
 	var unApplied []string
