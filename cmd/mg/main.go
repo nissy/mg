@@ -14,6 +14,8 @@ var (
 	isHelp    = flag.Bool("h", false, "")
 	isVersion = flag.Bool("v", false, "")
 	version   = "dev"
+
+	selectionErrorFormat = "Selection is %s %s"
 )
 
 func main() {
@@ -48,26 +50,26 @@ func run() (err error) {
 				case "up":
 					if vv, ok := m[args[i]]; ok {
 						if err := vv.Do(mg.UpDo); err != nil {
-							return err
+							return fmt.Errorf(selectionErrorFormat, args[i], err.Error())
 						}
 					} else {
-						return fmt.Errorf("Selection is %s does not exist.", args[i])
+						return fmt.Errorf(selectionErrorFormat, args[i], "does not exist.")
 					}
 				case "down":
 					if vv, ok := m[args[i]]; ok {
 						if err := vv.Do(mg.DownDo); err != nil {
-							return err
+							return fmt.Errorf(selectionErrorFormat, args[i], err.Error())
 						}
 					} else {
-						return fmt.Errorf("Selection is %s does not exist.", args[i])
+						return fmt.Errorf(selectionErrorFormat, args[i], "does not exist.")
 					}
 				case "status":
 					if vv, ok := m[args[i]]; ok {
 						if err := vv.Do(mg.StatusDo); err != nil {
-							return err
+							return fmt.Errorf(selectionErrorFormat, args[i], err.Error())
 						}
 					} else {
-						return fmt.Errorf("Selection is %s does not exist.", args[i])
+						return fmt.Errorf(selectionErrorFormat, args[i], "does not exist.")
 					}
 				default:
 					return fmt.Errorf("Command is %s does not exist.", args[0])
