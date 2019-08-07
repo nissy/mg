@@ -22,14 +22,15 @@
     "./testdata/postgres/seeds"
   ]
 
-[option-sample]
-  driver = "postgres"
-  dsn = "postgres://user:${PASSWORD}@${HOSTNAME}:5432/dbname?sslmode=disable"
-  source_dir = [
+[option-sample] # section name
+  driver = "postgres" # database driver
+  dsn = "postgres://user:${PASSWORD}@${HOSTNAME}:5432/dbname?sslmode=disable" # database dsn
+  source_dir = [ # database source directorys
     "./testdata/postgres/migrates",
     "./testdata/postgres/seeds"
   ]
-  up_annotation = "+goose Up"
-  down_annotation = "+goose Down"
-  version_table = "mg_versions"
-  version_start_number = 2019060819341936
+  up_annotation = "+goose Up" # database up command annotation
+  down_annotation = "+goose Down" # database down command annotation
+  version_table = "migration_versions" # versions use table name
+  version_start_number = 2019060819341936 # version start number
+  output_format = "JSON" # output message format

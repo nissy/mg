@@ -15,7 +15,7 @@ var (
 	isVersion = flag.Bool("v", false, "")
 	version   = "dev"
 
-	selectionErrorFormat = "Selection is %s %s"
+	sectionErrorFormat = "Section is %s %s"
 )
 
 func main() {
@@ -50,26 +50,26 @@ func run() (err error) {
 				case "up":
 					if vv, ok := m[args[i]]; ok {
 						if err := vv.Do(mg.UpDo); err != nil {
-							return fmt.Errorf(selectionErrorFormat, args[i], err.Error())
+							return fmt.Errorf(sectionErrorFormat, args[i], err.Error())
 						}
 					} else {
-						return fmt.Errorf(selectionErrorFormat, args[i], "does not exist.")
+						return fmt.Errorf(sectionErrorFormat, args[i], "does not exist.")
 					}
 				case "down":
 					if vv, ok := m[args[i]]; ok {
 						if err := vv.Do(mg.DownDo); err != nil {
-							return fmt.Errorf(selectionErrorFormat, args[i], err.Error())
+							return fmt.Errorf(sectionErrorFormat, args[i], err.Error())
 						}
 					} else {
-						return fmt.Errorf(selectionErrorFormat, args[i], "does not exist.")
+						return fmt.Errorf(sectionErrorFormat, args[i], "does not exist.")
 					}
 				case "status":
 					if vv, ok := m[args[i]]; ok {
 						if err := vv.Do(mg.StatusDo); err != nil {
-							return fmt.Errorf(selectionErrorFormat, args[i], err.Error())
+							return fmt.Errorf(sectionErrorFormat, args[i], err.Error())
 						}
 					} else {
-						return fmt.Errorf(selectionErrorFormat, args[i], "does not exist.")
+						return fmt.Errorf(sectionErrorFormat, args[i], "does not exist.")
 					}
 				default:
 					return fmt.Errorf("Command is %s does not exist.", args[0])
