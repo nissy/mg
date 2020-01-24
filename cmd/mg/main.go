@@ -18,6 +18,14 @@ var (
 	sectionErrorFormat = "Section is %s %s"
 )
 
+func init() {
+	flag.Usage = func() {
+		if _, err := fmt.Fprint(os.Stderr, help); err != nil {
+			panic(err)
+		}
+	}
+}
+
 func main() {
 	if err := run(); err != nil {
 		if _, perr := fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error()); perr != nil {
