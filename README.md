@@ -107,6 +107,8 @@ Usage:
 Options:
     -c string
         Set configuration file. (default "mg.toml")
+    -n string
+        Create empty source file.
     -h bool
         This help.
     -v bool
