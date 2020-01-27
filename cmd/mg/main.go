@@ -4,18 +4,22 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"time"
 
 	"github.com/nissy/mg"
 )
 
 var (
 	cfgFile   = flag.String("c", "mg.toml", "")
+	newSource = flag.String("n", "", "")
 	isHelp    = flag.Bool("h", false, "")
 	isVersion = flag.Bool("v", false, "")
 	version   = "dev"
 
 	sectionErrorFormat = "Section is %s %s"
+	sourceTemplate     = fmt.Sprintf("-- %s\n\n\n-- %s\n\n", mg.DefaultUpAnnotation, mg.DefaultDownAnnotation)
 )
 
 func init() {
@@ -43,6 +47,14 @@ func run() (err error) {
 	}
 	if *isVersion {
 		fmt.Printf("Version is %s\n", version)
+		return nil
+	}
+	if len(*newSource) > 0 {
+		filename := fmt.Sprintf("%s_%s.sql", time.Now().Format("20060102150405"), *newSource)
+		if err := ioutil.WriteFile(filename, []byte(sourceTemplate), 0664); err != nil {
+			return err
+		}
+		fmt.Println(filename)
 		return nil
 	}
 
@@ -96,6 +108,8 @@ var help = `Usage:
 Options:
     -c string
         Set configuration file. (default "mg.toml")
+    -n string
+        Create empty source file.
     -h bool
         This help.
     -v bool

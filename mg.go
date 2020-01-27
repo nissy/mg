@@ -18,10 +18,12 @@ const (
 	UpDo = iota
 	DownDo
 	StatusDo
+)
 
-	defaultUpAnnotation   = "@migrate.up"
-	defaultDownAnnotation = "@migrate.down"
-	defaultVersionTable   = "migration_versions"
+var (
+	DefaultUpAnnotation   = "@migrate.up"
+	DefaultDownAnnotation = "@migrate.down"
+	DefaultVersionTable   = "migration_versions"
 )
 
 type (
@@ -71,13 +73,13 @@ func (m *Migration) init(section string) error {
 	m.Section = section
 
 	if len(m.VersionTable) == 0 {
-		m.VersionTable = defaultVersionTable
+		m.VersionTable = DefaultVersionTable
 	}
 	if len(m.UpAnnotation) == 0 {
-		m.UpAnnotation = defaultUpAnnotation
+		m.UpAnnotation = DefaultUpAnnotation
 	}
 	if len(m.DownAnnotation) == 0 {
-		m.DownAnnotation = defaultDownAnnotation
+		m.DownAnnotation = DefaultDownAnnotation
 	}
 	if m.VersionSQLBuilder = FetchVersionSQLBuilder(m.Driver, m.VersionTable); m.VersionSQLBuilder == nil {
 		return fmt.Errorf("Driver is %s does not exist.", m.Driver)
