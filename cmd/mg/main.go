@@ -35,6 +35,7 @@ func main() {
 		if _, perr := fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error()); perr != nil {
 			panic(err)
 		}
+		os.Exit(1)
 	}
 }
 
