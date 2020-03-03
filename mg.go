@@ -2,6 +2,7 @@ package mg
 
 import (
 	"bufio"
+	"database/sql"
 	"errors"
 	"fmt"
 	"io"
@@ -106,6 +107,44 @@ func state(apply bool) string {
 	return "NG"
 }
 
+func (m *Migration) unApplieds(db *sql.DB) ([]*Source, error) {
+	rows, err := db.Query(m.VersionSQLBuilder.FetchApplieds())
+	if err != nil {
+		return nil, err
+	}
+	diff := make(map[uint64]*Source)
+	for _, v := range m.Sources {
+		diff[v.Version] = v
+	}
+	for rows.Next() {
+		var applied uint64
+		if err := rows.Scan(&applied); err != nil {
+			return nil, err
+		}
+		for _, v := range m.Sources {
+			if v.Version == applied {
+				delete(diff, applied)
+				break
+			}
+		}
+	}
+	defer rows.Close()
+	if rows.Err() != nil {
+		return nil, err
+	}
+	var ss []*Source
+	for _, v := range diff {
+		ss = append(ss, v)
+	}
+	sort.Slice(ss,
+		func(i, ii int) bool {
+			return ss[i].Version < ss[ii].Version
+		},
+	)
+
+	return ss, nil
+}
+
 func (m *Migration) Do(do int) (err error) {
 	if err := m.parse(); err != nil {
 		return err
@@ -136,7 +175,28 @@ func (m *Migration) Do(do int) (err error) {
 		lastVersion = m.VersionStartNumber
 	}
 
-	var unApplied []string
+	if do == StatusDo {
+		unApplieds, err := m.unApplieds(db)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("Version of postgres-sample:\n    current:\n        %d\n", lastVersion)
+		if len(unApplieds) > 0 {
+			fmt.Println("    \x1b[33munapplied:\x1b[0m")
+			for _, v := range unApplieds {
+				if lastVersion > v.Version {
+					err = errors.New("Unapplied version exists before current version.")
+					fmt.Printf("        \x1b[31m%d %s\x1b[0m\n", v.Version, v.File)
+				} else {
+					fmt.Printf("        \x1b[33m%d %s\x1b[0m\n", v.Version, v.File)
+				}
+			}
+		}
+
+		return err
+	}
+
 	for _, v := range m.Sources {
 		var mSQL, vSQL string
 		switch do {
@@ -152,14 +212,6 @@ func (m *Migration) Do(do int) (err error) {
 			}
 			mSQL = v.DownSQL
 			vSQL = m.VersionSQLBuilder.DeleteApplied(v.Version)
-		case StatusDo:
-			if lastVersion >= v.Version {
-				continue
-			}
-			unApplied = append(unApplied,
-				fmt.Sprintf("        \x1b[33m%d %s\x1b[0m\n", v.Version, v.File),
-			)
-			continue
 		}
 		if len(mSQL) == 0 {
 			continue
@@ -189,18 +241,8 @@ func (m *Migration) Do(do int) (err error) {
 		m.Apply = true
 		fmt.Println(m.output(v))
 	}
-
-	switch do {
-	case StatusDo:
-		fmt.Printf("Version of %s:\n    current:\n        %d\n", m.Section, lastVersion)
-		if len(unApplied) > 0 {
-			fmt.Println("    \x1b[33munapplied:\x1b[0m")
-			fmt.Print(strings.Join(unApplied, ""))
-		}
-	case UpDo, DownDo:
-		if !m.Apply {
-			fmt.Printf("%s has no version to migration.\n", m.Section)
-		}
+	if !m.Apply {
+		fmt.Printf("%s has no version to migration.\n", m.Section)
 	}
 
 	return nil
