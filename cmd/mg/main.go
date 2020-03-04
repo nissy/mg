@@ -66,6 +66,7 @@ func run() (err error) {
 		}
 
 		if args := flag.Args(); len(args) >= 2 {
+			var werr error
 			for i := 1; i < len(args); i++ {
 				switch args[0] {
 				case "up":
@@ -87,7 +88,11 @@ func run() (err error) {
 				case "status":
 					if vv, ok := m[args[i]]; ok {
 						if err := vv.Do(mg.StatusDo); err != nil {
-							return fmt.Errorf(sectionErrorFormat, args[i], err.Error())
+							if werr == nil {
+								werr = fmt.Errorf(sectionErrorFormat, args[i], err.Error())
+								continue
+							}
+							werr = fmt.Errorf("%w\n"+sectionErrorFormat, werr, args[i], err.Error())
 						}
 					} else {
 						return fmt.Errorf(sectionErrorFormat, args[i], "does not exist.")
@@ -95,6 +100,9 @@ func run() (err error) {
 				default:
 					return fmt.Errorf("Command is %s does not exist.", args[0])
 				}
+			}
+			if werr != nil {
+				return werr
 			}
 		} else {
 			return errors.New("Command is incorrect.")

@@ -181,19 +181,29 @@ func (m *Migration) Do(do int) (err error) {
 			return err
 		}
 
-		fmt.Printf("Version of postgres-sample:\n    current:\n        %d\n", lastVersion)
+		s := fmt.Sprintf("    current:\n        %d\n", lastVersion)
 		if len(unApplieds) > 0 {
-			fmt.Println("    \x1b[33munapplied:\x1b[0m")
+			var befores, afters []string
 			for _, v := range unApplieds {
-				if lastVersion > v.Version {
-					err = errors.New("Unapplied version exists before current version.")
-					fmt.Printf("        \x1b[31m%d %s\x1b[0m\n", v.Version, v.File)
-				} else {
-					fmt.Printf("        \x1b[33m%d %s\x1b[0m\n", v.Version, v.File)
+				if lastVersion == v.Version {
+					continue
 				}
+				if lastVersion > v.Version {
+					befores = append(befores, fmt.Sprintf("%d %s", v.Version, v.File))
+					continue
+				}
+				afters = append(afters, fmt.Sprintf("%d %s", v.Version, v.File))
+			}
+			if len(befores) > 0 {
+				err = errors.New("Unapplied version exists before current version.")
+				s = fmt.Sprintf("    \x1b[31munapplied version before current:\n%s\x1b[0m%s", fmt.Sprintf("        %s\n", strings.Join(befores, "\n        ")), s)
+			}
+			if len(afters) > 0 {
+				s = fmt.Sprintf("%s    \x1b[33munapplied:\n%s\x1b[0m", s, fmt.Sprintf("        %s\n", strings.Join(afters, "\n        ")))
 			}
 		}
 
+		fmt.Printf("Version of %s:\n%s", m.Section, s)
 		return err
 	}
 
