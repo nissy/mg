@@ -8,6 +8,7 @@ import (
 )
 
 type VersionSQLBuilder interface {
+	FetchApplieds() string
 	FetchLastApplied() string
 	InsretApplied(version uint64) string
 	DeleteApplied(version uint64) string
@@ -39,6 +40,13 @@ func FetchVersionSQLBuilder(driver, table string) VersionSQLBuilder {
 	return nil
 }
 
+func (v *vPostgres) FetchApplieds() string {
+	return fmt.Sprintf(
+		"SELECT applied_version FROM %s;",
+		v.table,
+	)
+}
+
 func (v *vPostgres) FetchLastApplied() string {
 	return fmt.Sprintf(
 		"SELECT applied_version FROM %s ORDER BY applied_version DESC LIMIT 1;",
@@ -63,6 +71,13 @@ func (v *vPostgres) DeleteApplied(version uint64) string {
 func (v *vPostgres) CreateTable() string {
 	return fmt.Sprintf(
 		"CREATE TABLE IF NOT EXISTS %s (applied_version BIGSERIAL PRIMARY KEY, created_at timestamp with time zone NOT NULL DEFAULT now());",
+		v.table,
+	)
+}
+
+func (v *vMySQL) FetchApplieds() string {
+	return fmt.Sprintf(
+		"SELECT applied_version FROM %s;",
 		v.table,
 	)
 }
