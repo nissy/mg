@@ -18,6 +18,13 @@ func openDatabase(driver, dsn string) (*sql.DB, error) {
 		cfg.ParseTime = true
 		dsn = cfg.FormatDSN()
 	}
+	db, err := sql.Open(driver, dsn)
+	if err != nil {
+		return nil, err
+	}
+	if err := db.Ping(); err != nil {
+		return nil, err
+	}
 
-	return sql.Open(driver, dsn)
+	return db, nil
 }

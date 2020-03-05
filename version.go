@@ -9,7 +9,7 @@ import (
 
 type VersionSQLBuilder interface {
 	FetchApplieds() string
-	FetchLastApplied() string
+	FetchCurrentApplied() string
 	InsretApplied(version uint64) string
 	DeleteApplied(version uint64) string
 	CreateTable() string
@@ -47,7 +47,7 @@ func (v *vPostgres) FetchApplieds() string {
 	)
 }
 
-func (v *vPostgres) FetchLastApplied() string {
+func (v *vPostgres) FetchCurrentApplied() string {
 	return fmt.Sprintf(
 		"SELECT applied_version FROM %s ORDER BY applied_version DESC LIMIT 1;",
 		v.table,
@@ -82,7 +82,7 @@ func (v *vMySQL) FetchApplieds() string {
 	)
 }
 
-func (v *vMySQL) FetchLastApplied() string {
+func (v *vMySQL) FetchCurrentApplied() string {
 	return fmt.Sprintf(
 		"SELECT applied_version FROM %s ORDER BY applied_version DESC LIMIT 1;",
 		v.table,

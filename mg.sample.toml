@@ -33,4 +33,4 @@
   down_annotation = "+goose Down" # database down command annotation
   version_table = "migration_versions" # versions use table name
   version_start_number = 2019060819341936 # version start number
-  output_format = "JSON" # output message format
+  json_log = true # output message format
