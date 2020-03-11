@@ -16,9 +16,9 @@ import (
 )
 
 const (
-	UpDo = iota
-	DownDo
-	StatusDo
+	UpDo     = "up"
+	DownDo   = "down"
+	StatusDo = "status"
 )
 
 var (
@@ -157,7 +157,7 @@ func (m *Migration) statusFetch(db *sql.DB, curVer uint64) error {
 	return nil
 }
 
-func (m *Migration) Do(do int) error {
+func (m *Migration) Do(do string) error {
 	if err := m.do(do); err != nil {
 		if m.JsonFormat {
 			return errors.New(toJson("ERROR", err.Error()))
@@ -167,7 +167,7 @@ func (m *Migration) Do(do int) error {
 	return nil
 }
 
-func (m *Migration) do(do int) error {
+func (m *Migration) do(do string) error {
 	if err := m.parse(); err != nil {
 		return err
 	}
@@ -196,9 +196,9 @@ func (m *Migration) do(do int) error {
 	}
 
 	if do == StatusDo {
-		d, err := m.displayStatus()
-		if len(d) > 0 {
-			fmt.Print(d)
+		o, err := m.displayStatus()
+		if len(o) > 0 {
+			fmt.Print(o)
 		}
 		return err
 	}
@@ -250,9 +250,9 @@ func (m *Migration) do(do int) error {
 		v.Apply = true
 	}
 
-	d, err := m.displayApply(do)
-	if len(d) > 0 {
-		fmt.Println(d)
+	o, err := m.displayApply(do)
+	if len(o) > 0 {
+		fmt.Println(o)
 	}
 
 	return err

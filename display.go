@@ -22,7 +22,7 @@ func toJson(severity string, message interface{}) string {
 	return string(b)
 }
 
-func (s *status) unapplieds(do int) []*Source {
+func (s *status) unapplieds(do string) []*Source {
 	switch do {
 	case UpDo:
 		return s.AfterUnapplieds
@@ -35,7 +35,7 @@ func (s *status) unapplieds(do int) []*Source {
 	return nil
 }
 
-func (m *Migration) displayApply(do int) (string, error) {
+func (m *Migration) displayApply(do string) (string, error) {
 	if m.JsonFormat {
 		j := map[string]interface{}{
 			"section": m.Section,
@@ -48,7 +48,7 @@ func (m *Migration) displayApply(do int) (string, error) {
 				break
 			}
 		}
-		j[label(do)] = doSources
+		j[do] = doSources
 		if m.status.Error != nil {
 			j["error"] = m.status.Error.Error()
 			return "", errors.New(toJson("ERROR", j))
@@ -112,17 +112,4 @@ func state(apply bool) string {
 		return "OK"
 	}
 	return "NG"
-}
-
-func label(do int) string {
-	switch do {
-	case UpDo:
-		return "up"
-	case DownDo:
-		return "down"
-	case StatusDo:
-		return "status"
-	}
-
-	return ""
 }
