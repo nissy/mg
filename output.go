@@ -27,7 +27,7 @@ func (s *Status) sources(do int) []*Source {
 	case UpDo:
 		return s.AfterUnapplieds
 	case DownDo:
-		if s.CurrentVersion == 0 {
+		if s.CurrentApplied == nil {
 			return []*Source{}
 		}
 		return []*Source{s.CurrentApplied}

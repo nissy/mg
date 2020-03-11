@@ -104,33 +104,40 @@ func (m *Migration) statusFetch(db *sql.DB, curVer uint64) error {
 	m.Status.JsonLog = m.JsonLog
 	m.Status.Section = m.Section
 	m.Status.CurrentVersion = curVer
-	rows, err := db.Query(m.VersionSQLBuilder.FetchApplieds())
-	if err != nil {
-		return err
-	}
+	m.Status.BeforeUnapplieds = []*Source{}
+	m.Status.AfterUnapplieds = []*Source{}
+
 	diff := make(map[uint64]*Source)
 	for _, v := range m.Sources {
 		diff[v.Version] = v
 	}
-	for rows.Next() {
-		var applied uint64
-		if err := rows.Scan(&applied); err != nil {
+
+	if curVer > 0 {
+		rows, err := db.Query(m.VersionSQLBuilder.FetchApplieds())
+		if err != nil {
 			return err
 		}
-		for _, v := range m.Sources {
-			if v.Version == applied {
-				if applied == curVer {
-					m.Status.CurrentApplied = v
+		for rows.Next() {
+			var applied uint64
+			if err := rows.Scan(&applied); err != nil {
+				return err
+			}
+			for _, v := range m.Sources {
+				if v.Version == applied {
+					if applied == curVer {
+						m.Status.CurrentApplied = v
+					}
+					delete(diff, applied)
+					break
 				}
-				delete(diff, applied)
-				break
 			}
 		}
+		defer rows.Close()
+		if rows.Err() != nil {
+			return err
+		}
 	}
-	defer rows.Close()
-	if rows.Err() != nil {
-		return err
-	}
+
 	for _, v := range diff {
 		switch {
 		case v.Version < m.Status.CurrentVersion:
