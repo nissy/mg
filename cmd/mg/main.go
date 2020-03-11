@@ -18,8 +18,7 @@ var (
 	isVersion = flag.Bool("v", false, "")
 	version   = "dev"
 
-	sectionErrorFormat = "Section is %s %s"
-	sourceTemplate     = fmt.Sprintf("-- %s\n\n\n-- %s\n\n", mg.DefaultUpAnnotation, mg.DefaultDownAnnotation)
+	sourceTemplate = fmt.Sprintf("-- %s\n\n\n-- %s\n\n", mg.DefaultUpAnnotation, mg.DefaultDownAnnotation)
 )
 
 func init() {
@@ -32,7 +31,7 @@ func init() {
 
 func main() {
 	if err := run(); err != nil {
-		if _, perr := fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error()); perr != nil {
+		if _, perr := fmt.Fprintln(os.Stderr, err.Error()); perr != nil {
 			panic(err)
 		}
 		os.Exit(1)
@@ -60,42 +59,33 @@ func run() (err error) {
 	}
 
 	if len(*cfgFile) > 0 {
-		m, err := mg.OpenCfg(*cfgFile)
+		ms, err := mg.OpenCfg(*cfgFile)
 		if err != nil {
 			return err
 		}
-
 		if args := flag.Args(); len(args) >= 2 {
 			var werr error
 			for i := 1; i < len(args); i++ {
+				m, ok := ms[args[i]]
+				if !ok {
+					return fmt.Errorf("Error: Section is %s %s", args[i], "does not exist.")
+				}
 				switch args[0] {
 				case "up":
-					if vv, ok := m[args[i]]; ok {
-						if err := vv.Do(mg.UpDo); err != nil {
-							return fmt.Errorf(sectionErrorFormat, args[i], err.Error())
-						}
-					} else {
-						return fmt.Errorf(sectionErrorFormat, args[i], "does not exist.")
+					if err := m.Do(mg.UpDo); err != nil {
+						return err
 					}
 				case "down":
-					if vv, ok := m[args[i]]; ok {
-						if err := vv.Do(mg.DownDo); err != nil {
-							return fmt.Errorf(sectionErrorFormat, args[i], err.Error())
-						}
-					} else {
-						return fmt.Errorf(sectionErrorFormat, args[i], "does not exist.")
+					if err := m.Do(mg.DownDo); err != nil {
+						return err
 					}
 				case "status":
-					if vv, ok := m[args[i]]; ok {
-						if err := vv.Do(mg.StatusDo); err != nil {
-							if werr == nil {
-								werr = fmt.Errorf(sectionErrorFormat, args[i], err.Error())
-								continue
-							}
-							werr = fmt.Errorf("%w\n"+sectionErrorFormat, werr, args[i], err.Error())
+					if err := m.Do(mg.StatusDo); err != nil {
+						if werr == nil {
+							werr = err
+							continue
 						}
-					} else {
-						return fmt.Errorf(sectionErrorFormat, args[i], "does not exist.")
+						werr = fmt.Errorf("%w\n%s", werr, err.Error())
 					}
 				default:
 					return fmt.Errorf("Command is %s does not exist.", args[0])

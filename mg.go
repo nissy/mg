@@ -41,7 +41,6 @@ type (
 		VersionSQLBuilder  VersionSQLBuilder `toml:"-"`
 		UpAnnotation       string            `toml:"up_annotation"`
 		DownAnnotation     string            `toml:"down_annotation"`
-		Apply              bool              `toml:"-"`
 		JsonLog            bool              `toml:"json_log"`
 		Status             *Status           `toml:"-"`
 	}
@@ -49,12 +48,15 @@ type (
 	Source struct {
 		UpSQL   string `json:"-"`
 		DownSQL string `json:"-"`
-		File    string `json:"file"`
-		Version uint64 `json:"version"`
 		Apply   bool   `json:"apply"`
+		Version uint64 `json:"version"`
+		File    string `json:"file"`
 	}
 
 	Status struct {
+		Error            error
+		JsonLog          bool      `json:"-"`
+		Section          string    `json:"section"`
 		Current          uint64    `json:"current"`
 		BeforeUnapplieds []*Source `json:"before_unapplieds"`
 		AfterUnapplieds  []*Source `json:"after_unapplieds"`
@@ -98,6 +100,8 @@ func (m *Migration) init(section string) error {
 }
 
 func (m *Migration) statusFetch(db *sql.DB, curVer uint64) error {
+	m.Status.JsonLog = m.JsonLog
+	m.Status.Section = m.Section
 	m.Status.Current = curVer
 	rows, err := db.Query(m.VersionSQLBuilder.FetchApplieds())
 	if err != nil {
@@ -131,11 +135,29 @@ func (m *Migration) statusFetch(db *sql.DB, curVer uint64) error {
 			m.Status.AfterUnapplieds = append(m.Status.AfterUnapplieds, v)
 		}
 	}
+	sort.Slice(m.Status.BeforeUnapplieds,
+		func(i, ii int) bool {
+			return m.Status.BeforeUnapplieds[i].Version < m.Status.BeforeUnapplieds[ii].Version
+		},
+	)
+	sort.Slice(m.Status.AfterUnapplieds,
+		func(i, ii int) bool {
+			return m.Status.AfterUnapplieds[i].Version < m.Status.AfterUnapplieds[ii].Version
+		},
+	)
 
 	return nil
 }
 
-func (m *Migration) Do(do int) (err error) {
+func (m *Migration) Do(do int) error {
+	err := m.do(do)
+	if err != nil && m.JsonLog {
+		return errors.New(toJson("ERROR", err.Error()))
+	}
+	return err
+}
+
+func (m *Migration) do(do int) error {
 	if err := m.parse(); err != nil {
 		return err
 	}
@@ -145,8 +167,6 @@ func (m *Migration) Do(do int) (err error) {
 		return err
 	}
 	defer db.Close()
-
-	logger := m.NewLogging()
 
 	var curVer uint64
 	if err := db.QueryRow(m.VersionSQLBuilder.FetchCurrentApplied()).Scan(&curVer); err != nil {
@@ -168,11 +188,20 @@ func (m *Migration) Do(do int) (err error) {
 	}
 
 	if do == StatusDo {
-		fmt.Print(logger.status(m.Status))
-		if len(m.Status.BeforeUnapplieds) > 0 {
-			err = errors.New("Unapplied version exists before current version.")
+		d, err := m.Status.display()
+		if len(d) > 0 {
+			fmt.Print(d)
 		}
 		return err
+	}
+
+	if len(m.Status.AfterUnapplieds) == 0 {
+		a := fmt.Sprintf("Section %s has no version to migration.\n", m.Section)
+		if m.JsonLog {
+			a = (toJson("INFO", a))
+		}
+		fmt.Println(a)
+		return nil
 	}
 
 	for _, v := range m.Status.AfterUnapplieds {
@@ -191,33 +220,34 @@ func (m *Migration) Do(do int) (err error) {
 
 		tx, err := db.Begin()
 		if err != nil {
-			return err
+			m.Status.Error = err
+			break
 		}
-
 		execSQL := fmt.Sprintf("%s%s", mSQL, vSQL)
 		if _, err := tx.Exec(execSQL); err != nil {
 			if rerr := tx.Rollback(); rerr != nil {
 				panic(rerr)
 			}
-			fmt.Println(logger.source(v))
-			return err
+			m.Status.Error = err
+			break
 		}
 		if err := tx.Commit(); err != nil {
 			if rerr := tx.Rollback(); rerr != nil {
 				panic(rerr)
 			}
-			return err
+			m.Status.Error = err
+			break
 		}
 
 		v.Apply = true
-		m.Apply = true
-		fmt.Println(logger.source(v))
-	}
-	if !m.Apply {
-		fmt.Printf("%s has no version to migration.\n", m.Section)
 	}
 
-	return nil
+	d, err := m.Status.displayApplys()
+	if len(d) > 0 {
+		fmt.Println(d)
+	}
+
+	return err
 }
 
 func (m *Migration) parse() (err error) {
