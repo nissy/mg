@@ -22,20 +22,33 @@ func toJson(severity string, message interface{}) string {
 	return string(b)
 }
 
-func (s *Status) displayApplys() (string, error) {
+func (s *Status) sources(do int) []*Source {
+	switch do {
+	case UpDo:
+		return s.AfterUnapplieds
+	case DownDo:
+		if s.CurrentVersion == 0 {
+			return []*Source{}
+		}
+		return []*Source{s.CurrentApplied}
+	}
+	return nil
+}
+
+func (s *Status) displayApplys(do int) (string, error) {
 	if s.JsonLog {
 		m := map[string]interface{}{
 			"section": s.Section,
-			"current": s.Current,
+			"current": s.CurrentVersion,
 		}
-		var do []*Source
-		for _, v := range s.AfterUnapplieds {
-			do = append(do, v)
+		var doSources []*Source
+		for _, v := range s.sources(do) {
+			doSources = append(doSources, v)
 			if !v.Apply {
 				break
 			}
 		}
-		m["do"] = do
+		m[doLabel(do)] = doSources
 		if s.Error != nil {
 			m["error"] = s.Error.Error()
 			return "", errors.New(toJson("ERROR", m))
@@ -44,13 +57,13 @@ func (s *Status) displayApplys() (string, error) {
 	}
 
 	var out []string
-	for _, v := range s.AfterUnapplieds {
+	for _, v := range s.sources(do) {
 		out = append(out, fmt.Sprintf("%s %d to %s is %s", state(v.Apply), v.Version, s.Section, v.File))
 		if !v.Apply {
 			break
 		}
 	}
-	return strings.Join(out, "\n\n"), s.Error
+	return strings.Join(out, "\n"), s.Error
 }
 
 func (s *Status) display() (string, error) {
@@ -61,7 +74,7 @@ func (s *Status) display() (string, error) {
 	if s.JsonLog {
 		m := map[string]interface{}{
 			"section": s.Section,
-			"current": s.Current,
+			"current": s.CurrentVersion,
 		}
 		if len(s.BeforeUnapplieds) > 0 {
 			m["before_unapplieds"] = s.BeforeUnapplieds
@@ -76,7 +89,7 @@ func (s *Status) display() (string, error) {
 		return toJson("INFO", m), nil
 	}
 
-	out := fmt.Sprintf("    current:\n        %d\n", s.Current)
+	out := fmt.Sprintf("    current:\n        %d\n", s.CurrentVersion)
 	if len(s.BeforeUnapplieds) > 0 {
 		var befores []string
 		for _, v := range s.BeforeUnapplieds {
@@ -99,4 +112,17 @@ func state(apply bool) string {
 		return "OK"
 	}
 	return "NG"
+}
+
+func doLabel(do int) string {
+	switch do {
+	case UpDo:
+		return "up"
+	case DownDo:
+		return "down"
+	case StatusDo:
+		return "status"
+	}
+
+	return ""
 }

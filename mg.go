@@ -57,7 +57,8 @@ type (
 		Error            error
 		JsonLog          bool      `json:"-"`
 		Section          string    `json:"section"`
-		Current          uint64    `json:"current"`
+		CurrentVersion   uint64    `json:"current"`
+		CurrentApplied   *Source   `json:"-"`
 		BeforeUnapplieds []*Source `json:"before_unapplieds"`
 		AfterUnapplieds  []*Source `json:"after_unapplieds"`
 	}
@@ -102,7 +103,7 @@ func (m *Migration) init(section string) error {
 func (m *Migration) statusFetch(db *sql.DB, curVer uint64) error {
 	m.Status.JsonLog = m.JsonLog
 	m.Status.Section = m.Section
-	m.Status.Current = curVer
+	m.Status.CurrentVersion = curVer
 	rows, err := db.Query(m.VersionSQLBuilder.FetchApplieds())
 	if err != nil {
 		return err
@@ -118,6 +119,9 @@ func (m *Migration) statusFetch(db *sql.DB, curVer uint64) error {
 		}
 		for _, v := range m.Sources {
 			if v.Version == applied {
+				if applied == curVer {
+					m.Status.CurrentApplied = v
+				}
 				delete(diff, applied)
 				break
 			}
@@ -129,9 +133,9 @@ func (m *Migration) statusFetch(db *sql.DB, curVer uint64) error {
 	}
 	for _, v := range diff {
 		switch {
-		case v.Version < m.Status.Current:
+		case v.Version < m.Status.CurrentVersion:
 			m.Status.BeforeUnapplieds = append(m.Status.BeforeUnapplieds, v)
-		case v.Version > m.Status.Current:
+		case v.Version > m.Status.CurrentVersion:
 			m.Status.AfterUnapplieds = append(m.Status.AfterUnapplieds, v)
 		}
 	}
@@ -177,8 +181,6 @@ func (m *Migration) do(do int) error {
 			if _, err := db.Exec(m.VersionSQLBuilder.CreateTable()); err != nil {
 				return err
 			}
-		case StatusDo:
-			fmt.Println(err.Error())
 		}
 	}
 	if curVer < m.VersionStartNumber {
@@ -197,8 +199,8 @@ func (m *Migration) do(do int) error {
 		return err
 	}
 
-	if len(m.Status.AfterUnapplieds) == 0 {
-		a := fmt.Sprintf("Section %s has no version to migration.\n", m.Section)
+	if len(m.Status.sources(do)) == 0 {
+		a := fmt.Sprintf("Section %s has no version to migration.", m.Section)
 		if m.JsonLog {
 			a = (toJson("INFO", a))
 		}
@@ -206,7 +208,7 @@ func (m *Migration) do(do int) error {
 		return nil
 	}
 
-	for _, v := range m.Status.AfterUnapplieds {
+	for _, v := range m.Status.sources(do) {
 		var mSQL, vSQL string
 		switch do {
 		case UpDo:
@@ -244,7 +246,7 @@ func (m *Migration) do(do int) error {
 		v.Apply = true
 	}
 
-	d, err := m.Status.displayApplys()
+	d, err := m.Status.displayApplys(do)
 	if len(d) > 0 {
 		fmt.Println(d)
 	}
