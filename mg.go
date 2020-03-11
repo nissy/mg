@@ -150,11 +150,13 @@ func (m *Migration) statusFetch(db *sql.DB, curVer uint64) error {
 }
 
 func (m *Migration) Do(do int) error {
-	err := m.do(do)
-	if err != nil && m.JsonLog {
-		return errors.New(toJson("ERROR", err.Error()))
+	if err := m.do(do); err != nil {
+		if m.JsonLog {
+			return errors.New(toJson("ERROR", err.Error()))
+		}
+		return fmt.Errorf("Error: Section is %s %s", m.Section, err.Error())
 	}
-	return err
+	return nil
 }
 
 func (m *Migration) do(do int) error {
