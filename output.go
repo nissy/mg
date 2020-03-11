@@ -22,7 +22,7 @@ func toJson(severity string, message interface{}) string {
 	return string(b)
 }
 
-func (s *Status) sources(do int) []*Source {
+func (s *status) unapplieds(do int) []*Source {
 	switch do {
 	case UpDo:
 		return s.AfterUnapplieds
@@ -35,76 +35,76 @@ func (s *Status) sources(do int) []*Source {
 	return nil
 }
 
-func (s *Status) displayApplys(do int) (string, error) {
-	if s.JsonLog {
-		m := map[string]interface{}{
-			"section": s.Section,
-			"current": s.CurrentVersion,
+func (m *Migration) displayApply(do int) (string, error) {
+	if m.JsonFormat {
+		j := map[string]interface{}{
+			"section": m.Section,
+			"current": m.status.CurrentVersion,
 		}
 		var doSources []*Source
-		for _, v := range s.sources(do) {
+		for _, v := range m.status.unapplieds(do) {
 			doSources = append(doSources, v)
 			if !v.Apply {
 				break
 			}
 		}
-		m[doLabel(do)] = doSources
-		if s.Error != nil {
-			m["error"] = s.Error.Error()
-			return "", errors.New(toJson("ERROR", m))
+		j[label(do)] = doSources
+		if m.status.Error != nil {
+			j["error"] = m.status.Error.Error()
+			return "", errors.New(toJson("ERROR", j))
 		}
-		return toJson("INFO", m), nil
+		return toJson("INFO", j), nil
 	}
 
 	var out []string
-	for _, v := range s.sources(do) {
-		out = append(out, fmt.Sprintf("%s %d to %s is %s", state(v.Apply), v.Version, s.Section, v.File))
+	for _, v := range m.status.unapplieds(do) {
+		out = append(out, fmt.Sprintf("%s %d to %s is %s", state(v.Apply), v.Version, m.Section, v.File))
 		if !v.Apply {
 			break
 		}
 	}
-	return strings.Join(out, "\n"), s.Error
+	return strings.Join(out, "\n"), m.status.Error
 }
 
-func (s *Status) display() (string, error) {
+func (m *Migration) displayStatus() (string, error) {
 	var err error
-	if len(s.BeforeUnapplieds) > 0 {
+	if len(m.status.BeforeUnapplieds) > 0 {
 		err = errors.New("Unapplied version exists before current version.")
 	}
-	if s.JsonLog {
-		m := map[string]interface{}{
-			"section": s.Section,
-			"current": s.CurrentVersion,
+	if m.JsonFormat {
+		j := map[string]interface{}{
+			"section": m.Section,
+			"current": m.status.CurrentVersion,
 		}
-		if len(s.BeforeUnapplieds) > 0 {
-			m["before_unapplieds"] = s.BeforeUnapplieds
+		if len(m.status.BeforeUnapplieds) > 0 {
+			j["before_unapplieds"] = m.status.BeforeUnapplieds
 		}
-		if len(s.AfterUnapplieds) > 0 {
-			m["after_unapplieds"] = s.AfterUnapplieds
+		if len(m.status.AfterUnapplieds) > 0 {
+			j["after_unapplieds"] = m.status.AfterUnapplieds
 		}
 		if err != nil {
-			m["error"] = err.Error()
-			return "", errors.New(toJson("ERROR", m))
+			j["error"] = err.Error()
+			return "", errors.New(toJson("ERROR", j))
 		}
-		return toJson("INFO", m), nil
+		return toJson("INFO", j), nil
 	}
 
-	out := fmt.Sprintf("    current:\n        %d\n", s.CurrentVersion)
-	if len(s.BeforeUnapplieds) > 0 {
+	out := fmt.Sprintf("    current:\n        %d\n", m.status.CurrentVersion)
+	if len(m.status.BeforeUnapplieds) > 0 {
 		var befores []string
-		for _, v := range s.BeforeUnapplieds {
+		for _, v := range m.status.BeforeUnapplieds {
 			befores = append(befores, fmt.Sprintf("%d %s", v.Version, v.File))
 		}
 		out = fmt.Sprintf("    \x1b[31munapplied version before current:\n%s\x1b[0m%s", fmt.Sprintf("        %s\n", strings.Join(befores, "\n        ")), out)
 	}
-	if len(s.AfterUnapplieds) > 0 {
+	if len(m.status.AfterUnapplieds) > 0 {
 		var afters []string
-		for _, v := range s.AfterUnapplieds {
+		for _, v := range m.status.AfterUnapplieds {
 			afters = append(afters, fmt.Sprintf("%d %s", v.Version, v.File))
 		}
 		out = fmt.Sprintf("%s    \x1b[33munapplied:\n%s\x1b[0m", out, fmt.Sprintf("        %s\n", strings.Join(afters, "\n        ")))
 	}
-	return fmt.Sprintf("Version of %s:\n%s", s.Section, out), err
+	return fmt.Sprintf("Version of %s:\n%s", m.Section, out), err
 }
 
 func state(apply bool) string {
@@ -114,7 +114,7 @@ func state(apply bool) string {
 	return "NG"
 }
 
-func doLabel(do int) string {
+func label(do int) string {
 	switch do {
 	case UpDo:
 		return "up"
