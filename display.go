@@ -8,6 +8,32 @@ import (
 	"time"
 )
 
+const (
+	severityDefault   = "DEFAULT"
+	severityDebug     = "DEBUG"
+	severityInfo      = "INFO"
+	severityNotice    = "NOTICE"
+	severityWarning   = "WARNING"
+	severityError     = "ERROR"
+	severityCritical  = "CRITICAL"
+	severityAlert     = "ALERT"
+	severityEmergency = "EMERGENCY"
+)
+
+type jsonErr struct {
+	output string
+}
+
+func (e *jsonErr) Error() string {
+	return e.output
+}
+
+func toJsonErr(severity string, message interface{}) error {
+	return &jsonErr{
+		output: toJson(severity, message),
+	}
+}
+
 func toJson(severity string, message interface{}) string {
 	b, err := json.Marshal(
 		map[string]interface{}{
@@ -51,9 +77,9 @@ func (m *Migration) displayApply(do string) (string, error) {
 		j[do] = doSources
 		if m.status.Error != nil {
 			j["error"] = m.status.Error.Error()
-			return "", errors.New(toJson("ERROR", j))
+			return "", toJsonErr(severityCritical, j)
 		}
-		return toJson("INFO", j), nil
+		return toJson(severityNotice, j), nil
 	}
 
 	var out []string
@@ -84,9 +110,9 @@ func (m *Migration) displayStatus() (string, error) {
 		}
 		if err != nil {
 			j["error"] = err.Error()
-			return "", errors.New(toJson("ERROR", j))
+			return "", toJsonErr(severityError, j)
 		}
-		return toJson("INFO", j), nil
+		return toJson(severityInfo, j), nil
 	}
 
 	out := fmt.Sprintf("    current:\n        %d\n", m.status.CurrentVersion)
