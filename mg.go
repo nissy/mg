@@ -101,7 +101,7 @@ func (m *Migration) init(section string) error {
 	return nil
 }
 
-func (m *Migration) statusFetch(db *sql.DB, curVer uint64) error {
+func (m *Migration) fetchStatus(db *sql.DB, curVer uint64) error {
 	m.status.CurrentVersion = curVer
 
 	diff := make(map[uint64]*Source)
@@ -160,7 +160,11 @@ func (m *Migration) statusFetch(db *sql.DB, curVer uint64) error {
 func (m *Migration) Do(do string) error {
 	if err := m.do(do); err != nil {
 		if m.JsonFormat {
-			return errors.New(toJson("ERROR", err.Error()))
+			var e *jsonErr
+			if !errors.As(err, &e) {
+				return toJsonErr("ERROR", err.Error())
+			}
+			return err
 		}
 		return fmt.Errorf("Error: Section is %s %s", m.Section, err.Error())
 	}
@@ -191,7 +195,7 @@ func (m *Migration) do(do string) error {
 		curVer = m.VersionStartNumber
 	}
 
-	if err := m.statusFetch(db, curVer); err != nil {
+	if err := m.fetchStatus(db, curVer); err != nil {
 		return err
 	}
 
@@ -206,7 +210,7 @@ func (m *Migration) do(do string) error {
 	if len(m.status.unapplieds(do)) == 0 {
 		a := fmt.Sprintf("Section %s has no version to migration.", m.Section)
 		if m.JsonFormat {
-			a = (toJson("INFO", a))
+			a = (toJson(severityNotice, a))
 		}
 		fmt.Println(a)
 		return nil
@@ -276,7 +280,6 @@ func (m *Migration) parse() (err error) {
 			}
 		}
 	}
-
 	sort.Slice(m.Sources,
 		func(i, ii int) bool {
 			return m.Sources[i].Version < m.Sources[ii].Version
