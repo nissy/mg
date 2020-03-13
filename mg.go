@@ -104,14 +104,25 @@ func (m *Migration) init(section string) error {
 	return nil
 }
 
-func (m *Migration) fetchStatus(db *sql.DB, do string, curVer uint64) error {
+func (m *Migration) fetchApplied(db *sql.DB, do string) error {
+	if err := db.QueryRow(m.VersionSQLBuilder.FetchCurrentApplied()).Scan(&m.status.CurrentVersion); err != nil {
+		switch do {
+		case UpDo, DownDo:
+			if _, err := db.Exec(m.VersionSQLBuilder.CreateTable()); err != nil {
+				return err
+			}
+		}
+	}
+	if m.status.CurrentVersion < m.VersionStartNumber {
+		m.status.CurrentVersion = m.VersionStartNumber
+	}
+
 	diff := make(map[uint64]*Source)
 	for _, v := range m.Sources {
 		if m.VersionStartNumber < v.Version {
 			diff[v.Version] = v
 		}
 	}
-	m.status.CurrentVersion = curVer
 	if m.status.CurrentVersion > 0 {
 		rows, existErr := db.Query(m.VersionSQLBuilder.FetchApplied())
 		if existErr != nil {
@@ -197,7 +208,7 @@ func (m *Migration) do(do string) error {
 		curVer = m.VersionStartNumber
 	}
 
-	if err := m.fetchStatus(db, do, curVer); err != nil {
+	if err := m.fetchApplied(db, do); err != nil {
 		return err
 	}
 
