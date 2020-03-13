@@ -27,7 +27,7 @@ database-down: postgres-down mysql-down
 postgres-up:
 	docker run -d \
 		-p 5432:5432 \
-		-e POSTGRES_DB=dbname	\
+		-e POSTGRES_DB=dbname \
 		-e POSTGRES_USER=user \
 		-e POSTGRES_PASSWORD=password \
 		--name=$(NAME)-postgres postgres:9.6
