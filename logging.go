@@ -28,13 +28,13 @@ func (e *jsonErr) Error() string {
 	return e.output
 }
 
-func toJsonErr(severity string, message interface{}) error {
+func jsonEncodeErr(severity string, message interface{}) error {
 	return &jsonErr{
-		output: toJson(severity, message),
+		output: jsonEncode(severity, message),
 	}
 }
 
-func toJson(severity string, message interface{}) string {
+func jsonEncode(severity string, message interface{}) string {
 	b, err := json.Marshal(
 		map[string]interface{}{
 			"time":     time.Now().Format(time.RFC3339Nano),
@@ -48,42 +48,29 @@ func toJson(severity string, message interface{}) string {
 	return string(b)
 }
 
-func (s *status) unapplieds(do string) []*Source {
-	switch do {
-	case UpDo:
-		return s.AfterUnapplieds
-	case DownDo:
-		if s.CurrentApplied == nil {
-			return []*Source{}
-		}
-		return []*Source{s.CurrentApplied}
-	}
-	return nil
-}
-
-func (m *Migration) displayApply(do string) (string, error) {
+func (m *Migration) stringApplied(do string) (string, error) {
 	if m.JsonFormat {
 		j := map[string]interface{}{
 			"section": m.Section,
 			"current": m.status.CurrentVersion,
 		}
-		var doSources []*Source
-		for _, v := range m.status.unapplieds(do) {
-			doSources = append(doSources, v)
+		var ss []*Source
+		for _, v := range m.status.fetchApplySources(do) {
+			ss = append(ss, v)
 			if !v.Apply {
 				break
 			}
 		}
-		j[do] = doSources
+		j[do] = ss
 		if m.status.Error != nil {
 			j["error"] = m.status.Error.Error()
-			return "", toJsonErr(severityCritical, j)
+			return "", jsonEncodeErr(severityCritical, j)
 		}
-		return toJson(severityNotice, j), nil
+		return jsonEncode(severityNotice, j), nil
 	}
 
 	var out []string
-	for _, v := range m.status.unapplieds(do) {
+	for _, v := range m.status.fetchApplySources(do) {
 		out = append(out, fmt.Sprintf("%s %d to %s is %s", state(v.Apply), v.Version, m.Section, v.File))
 		if !v.Apply {
 			break
@@ -92,9 +79,9 @@ func (m *Migration) displayApply(do string) (string, error) {
 	return strings.Join(out, "\n"), m.status.Error
 }
 
-func (m *Migration) displayStatus() (string, error) {
+func (m *Migration) stringStatus() (string, error) {
 	var err error
-	if len(m.status.BeforeUnapplieds) > 0 {
+	if len(m.status.UnappliedSources) > 0 {
 		err = errors.New("Unapplied version exists before current version.")
 	}
 	if m.JsonFormat {
@@ -102,33 +89,33 @@ func (m *Migration) displayStatus() (string, error) {
 			"section": m.Section,
 			"current": m.status.CurrentVersion,
 		}
-		if len(m.status.BeforeUnapplieds) > 0 {
-			j["before_unapplieds"] = m.status.BeforeUnapplieds
+		if len(m.status.UnappliedSources) > 0 {
+			j["unapplied"] = m.status.UnappliedSources
 		}
-		if len(m.status.AfterUnapplieds) > 0 {
-			j["after_unapplieds"] = m.status.AfterUnapplieds
+		if len(m.status.ApplySources) > 0 {
+			j["apply"] = m.status.ApplySources
 		}
 		if err != nil {
 			j["error"] = err.Error()
-			return "", toJsonErr(severityError, j)
+			return "", jsonEncodeErr(severityError, j)
 		}
-		return toJson(severityInfo, j), nil
+		return jsonEncode(severityInfo, j), nil
 	}
 
 	out := fmt.Sprintf("    current:\n        %d\n", m.status.CurrentVersion)
-	if len(m.status.BeforeUnapplieds) > 0 {
+	if len(m.status.UnappliedSources) > 0 {
 		var befores []string
-		for _, v := range m.status.BeforeUnapplieds {
+		for _, v := range m.status.UnappliedSources {
 			befores = append(befores, fmt.Sprintf("%d %s", v.Version, v.File))
 		}
-		out = fmt.Sprintf("    \x1b[31munapplied version before current:\n%s\x1b[0m%s", fmt.Sprintf("        %s\n", strings.Join(befores, "\n        ")), out)
+		out = fmt.Sprintf("    \x1b[31munapplied:\n%s\x1b[0m%s", fmt.Sprintf("        %s\n", strings.Join(befores, "\n        ")), out)
 	}
-	if len(m.status.AfterUnapplieds) > 0 {
+	if len(m.status.ApplySources) > 0 {
 		var afters []string
-		for _, v := range m.status.AfterUnapplieds {
+		for _, v := range m.status.ApplySources {
 			afters = append(afters, fmt.Sprintf("%d %s", v.Version, v.File))
 		}
-		out = fmt.Sprintf("%s    \x1b[33munapplied:\n%s\x1b[0m", out, fmt.Sprintf("        %s\n", strings.Join(afters, "\n        ")))
+		out = fmt.Sprintf("%s    \x1b[33mapply:\n%s\x1b[0m", out, fmt.Sprintf("        %s\n", strings.Join(afters, "\n        ")))
 	}
 	return fmt.Sprintf("Version of %s:\n%s", m.Section, out), err
 }
