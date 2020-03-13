@@ -8,10 +8,10 @@ import (
 )
 
 type VersionSQLBuilder interface {
-	FetchApplieds() string
+	FetchApplied() string
 	FetchCurrentApplied() string
-	InsretApplied(version uint64) string
-	DeleteApplied(version uint64) string
+	InsretApply(version uint64) string
+	DeleteApply(version uint64) string
 	CreateTable() string
 }
 
@@ -40,7 +40,7 @@ func FetchVersionSQLBuilder(driver, table string) VersionSQLBuilder {
 	return nil
 }
 
-func (v *vPostgres) FetchApplieds() string {
+func (v *vPostgres) FetchApplied() string {
 	return fmt.Sprintf(
 		"SELECT applied_version FROM %s;",
 		v.table,
@@ -54,14 +54,14 @@ func (v *vPostgres) FetchCurrentApplied() string {
 	)
 }
 
-func (v *vPostgres) InsretApplied(version uint64) string {
+func (v *vPostgres) InsretApply(version uint64) string {
 	return fmt.Sprintf(
 		"INSERT INTO %s (applied_version) VALUES (%d);",
 		v.table, version,
 	)
 }
 
-func (v *vPostgres) DeleteApplied(version uint64) string {
+func (v *vPostgres) DeleteApply(version uint64) string {
 	return fmt.Sprintf(
 		"DELETE FROM %s WHERE applied_version = %d;",
 		v.table, version,
@@ -75,7 +75,7 @@ func (v *vPostgres) CreateTable() string {
 	)
 }
 
-func (v *vMySQL) FetchApplieds() string {
+func (v *vMySQL) FetchApplied() string {
 	return fmt.Sprintf(
 		"SELECT applied_version FROM %s;",
 		v.table,
@@ -89,14 +89,14 @@ func (v *vMySQL) FetchCurrentApplied() string {
 	)
 }
 
-func (v *vMySQL) InsretApplied(version uint64) string {
+func (v *vMySQL) InsretApply(version uint64) string {
 	return fmt.Sprintf(
 		"INSERT INTO %s (applied_version) VALUES (%d);",
 		v.table, version,
 	)
 }
 
-func (v *vMySQL) DeleteApplied(version uint64) string {
+func (v *vMySQL) DeleteApply(version uint64) string {
 	return fmt.Sprintf(
 		"DELETE FROM %s WHERE applied_version = %d;",
 		v.table, version,

@@ -56,9 +56,9 @@ type (
 	status struct {
 		Error            error
 		CurrentVersion   uint64
-		CurrentApplied   *Source
-		BeforeUnapplieds []*Source
-		AfterUnapplieds  []*Source
+		CurrentSource    *Source
+		UnappliedSources []*Source
+		ApplySources     []*Source
 	}
 )
 
@@ -68,6 +68,9 @@ func OpenCfg(filename string) (mg Mg, err error) {
 	}
 	for s, m := range mg {
 		if err := m.init(s); err != nil {
+			return nil, err
+		}
+		if err := m.parse(); err != nil {
 			return nil, err
 		}
 	}
@@ -81,8 +84,8 @@ func (m *Migration) init(section string) error {
 	}
 	m.Section = section
 	m.status = &status{
-		AfterUnapplieds:  []*Source{},
-		BeforeUnapplieds: []*Source{},
+		ApplySources:     []*Source{},
+		UnappliedSources: []*Source{},
 	}
 
 	if len(m.VersionTable) == 0 {
@@ -102,15 +105,14 @@ func (m *Migration) init(section string) error {
 }
 
 func (m *Migration) fetchStatus(db *sql.DB, curVer uint64) error {
-	m.status.CurrentVersion = curVer
-
 	diff := make(map[uint64]*Source)
 	for _, v := range m.Sources {
 		diff[v.Version] = v
 	}
 
+	m.status.CurrentVersion = curVer
 	if curVer > 0 {
-		rows, err := db.Query(m.VersionSQLBuilder.FetchApplieds())
+		rows, err := db.Query(m.VersionSQLBuilder.FetchApplied())
 		if err != nil {
 			return err
 		}
@@ -122,7 +124,7 @@ func (m *Migration) fetchStatus(db *sql.DB, curVer uint64) error {
 			for _, v := range m.Sources {
 				if v.Version == applied {
 					if applied == curVer {
-						m.status.CurrentApplied = v
+						m.status.CurrentSource = v
 					}
 					delete(diff, applied)
 					break
@@ -138,19 +140,19 @@ func (m *Migration) fetchStatus(db *sql.DB, curVer uint64) error {
 	for _, v := range diff {
 		switch {
 		case v.Version < m.status.CurrentVersion:
-			m.status.BeforeUnapplieds = append(m.status.BeforeUnapplieds, v)
+			m.status.UnappliedSources = append(m.status.UnappliedSources, v)
 		case v.Version > m.status.CurrentVersion:
-			m.status.AfterUnapplieds = append(m.status.AfterUnapplieds, v)
+			m.status.ApplySources = append(m.status.ApplySources, v)
 		}
 	}
-	sort.Slice(m.status.BeforeUnapplieds,
+	sort.Slice(m.status.UnappliedSources,
 		func(i, ii int) bool {
-			return m.status.BeforeUnapplieds[i].Version < m.status.BeforeUnapplieds[ii].Version
+			return m.status.UnappliedSources[i].Version < m.status.UnappliedSources[ii].Version
 		},
 	)
-	sort.Slice(m.status.AfterUnapplieds,
+	sort.Slice(m.status.ApplySources,
 		func(i, ii int) bool {
-			return m.status.AfterUnapplieds[i].Version < m.status.AfterUnapplieds[ii].Version
+			return m.status.ApplySources[i].Version < m.status.ApplySources[ii].Version
 		},
 	)
 
@@ -162,7 +164,7 @@ func (m *Migration) Do(do string) error {
 		if m.JsonFormat {
 			var e *jsonErr
 			if !errors.As(err, &e) {
-				return toJsonErr("ERROR", err.Error())
+				return jsonEncodeErr("ERROR", err.Error())
 			}
 			return err
 		}
@@ -172,10 +174,6 @@ func (m *Migration) Do(do string) error {
 }
 
 func (m *Migration) do(do string) error {
-	if err := m.parse(); err != nil {
-		return err
-	}
-
 	db, err := openDatabase(m.Driver, m.DSN)
 	if err != nil {
 		return err
@@ -200,31 +198,31 @@ func (m *Migration) do(do string) error {
 	}
 
 	if do == StatusDo {
-		o, err := m.displayStatus()
+		o, err := m.stringStatus()
 		if len(o) > 0 {
 			fmt.Print(o)
 		}
 		return err
 	}
 
-	if len(m.status.unapplieds(do)) == 0 {
+	if len(m.status.fetchApplySources(do)) == 0 {
 		a := fmt.Sprintf("Section %s has no version to migration.", m.Section)
 		if m.JsonFormat {
-			a = (toJson(severityNotice, a))
+			a = (jsonEncode(severityNotice, a))
 		}
 		fmt.Println(a)
 		return nil
 	}
 
-	for _, v := range m.status.unapplieds(do) {
+	for _, v := range m.status.fetchApplySources(do) {
 		var mSQL, vSQL string
 		switch do {
 		case UpDo:
 			mSQL = v.UpSQL
-			vSQL = m.VersionSQLBuilder.InsretApplied(v.Version)
+			vSQL = m.VersionSQLBuilder.InsretApply(v.Version)
 		case DownDo:
 			mSQL = v.DownSQL
-			vSQL = m.VersionSQLBuilder.DeleteApplied(v.Version)
+			vSQL = m.VersionSQLBuilder.DeleteApply(v.Version)
 		}
 		if len(mSQL) == 0 {
 			continue
@@ -254,7 +252,7 @@ func (m *Migration) do(do string) error {
 		v.Apply = true
 	}
 
-	o, err := m.displayApply(do)
+	o, err := m.stringApplied(do)
 	if len(o) > 0 {
 		fmt.Println(o)
 	}
@@ -355,4 +353,19 @@ func nameToVersion(name string) (version uint64, err error) {
 	}
 
 	return version, nil
+}
+
+func (s *status) fetchApplySources(do string) (ss []*Source) {
+	switch do {
+	case UpDo:
+		ss = s.ApplySources
+	case DownDo:
+		if s.CurrentSource != nil {
+			return []*Source{s.CurrentSource}
+		}
+	}
+	if ss == nil {
+		return []*Source{}
+	}
+	return ss
 }
