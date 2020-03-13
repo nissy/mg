@@ -104,36 +104,40 @@ func (m *Migration) init(section string) error {
 	return nil
 }
 
-func (m *Migration) fetchStatus(db *sql.DB, curVer uint64) error {
+func (m *Migration) fetchStatus(db *sql.DB, do string, curVer uint64) error {
 	diff := make(map[uint64]*Source)
 	for _, v := range m.Sources {
-		diff[v.Version] = v
-	}
-
-	m.status.CurrentVersion = curVer
-	if curVer > 0 {
-		rows, err := db.Query(m.VersionSQLBuilder.FetchApplied())
-		if err != nil {
-			return err
+		if m.VersionStartNumber < v.Version {
+			diff[v.Version] = v
 		}
-		for rows.Next() {
-			var applied uint64
-			if err := rows.Scan(&applied); err != nil {
-				return err
+	}
+	m.status.CurrentVersion = curVer
+	if m.status.CurrentVersion > 0 {
+		rows, existErr := db.Query(m.VersionSQLBuilder.FetchApplied())
+		if existErr != nil {
+			if do != StatusDo {
+				return existErr
 			}
-			for _, v := range m.Sources {
-				if v.Version == applied {
-					if applied == curVer {
-						m.status.CurrentSource = v
+		} else {
+			for rows.Next() {
+				var applied uint64
+				if err := rows.Scan(&applied); err != nil {
+					return err
+				}
+				for _, v := range m.Sources {
+					if v.Version == applied {
+						if applied == m.status.CurrentVersion {
+							m.status.CurrentSource = v
+						}
+						delete(diff, applied)
+						break
 					}
-					delete(diff, applied)
-					break
 				}
 			}
-		}
-		defer rows.Close()
-		if rows.Err() != nil {
-			return err
+			defer rows.Close()
+			if rows.Err() != nil {
+				return rows.Err()
+			}
 		}
 	}
 
@@ -193,7 +197,7 @@ func (m *Migration) do(do string) error {
 		curVer = m.VersionStartNumber
 	}
 
-	if err := m.fetchStatus(db, curVer); err != nil {
+	if err := m.fetchStatus(db, do, curVer); err != nil {
 		return err
 	}
 
