@@ -51,6 +51,13 @@ $ brew install nissy/mg/mg
 options
 
 ```toml
+[option-sample] # section name
+  driver = "postgres" # database driver
+  dsn = "postgres://user:${PASSWORD}@${HOSTNAME}:5432/dbname?sslmode=disable" # database dsn
+  source_dir = [ # database source directorys
+    "./testdata/postgres/migrates",
+    "./testdata/postgres/seeds"
+  ]
   up_annotation = "+goose Up" # database up command annotation
   down_annotation = "+goose Down" # database down command annotation
   version_table = "migration_versions" # versions use table name
