@@ -195,19 +195,6 @@ func (m *Migration) do(do string) error {
 	}
 	defer db.Close()
 
-	var curVer uint64
-	if err := db.QueryRow(m.VersionSQLBuilder.FetchCurrentApplied()).Scan(&curVer); err != nil {
-		switch do {
-		case UpDo, DownDo:
-			if _, err := db.Exec(m.VersionSQLBuilder.CreateTable()); err != nil {
-				return err
-			}
-		}
-	}
-	if curVer < m.VersionStartNumber {
-		curVer = m.VersionStartNumber
-	}
-
 	if err := m.fetchApplied(db, do); err != nil {
 		return err
 	}
