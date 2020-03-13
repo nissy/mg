@@ -48,6 +48,17 @@ $ brew install nissy/mg/mg
   ]
 ```
 
+options
+
+```toml
+  up_annotation = "+goose Up" # database up command annotation
+  down_annotation = "+goose Down" # database down command annotation
+  version_table = "migration_versions" # versions use table name
+  version_start_number = 2019060819341936 # version start number
+  json_format = true # output message format
+```
+
+
 ### source sql
 
 ```sql
@@ -94,10 +105,19 @@ display the status of migrate.
 ```bash
 $ mg status postgres-sample
 Version of postgres-sample:
+    unapplied:
+        2019060819341811 testdata/postgres/seeds/2019060819341811_jobs.sql
     current:
         2019060819341935
-    unapplied:
+    apply:
         2019060819341948 testdata/postgres/seeds/2019060819341948_users.sql
+```
+
+exit with 1 if there is a previous version that has not been applied.
+
+```
+Error: Section is postgres-sample Unapplied version exists before current version.
+exit status 1
 ```
 
 ### help
