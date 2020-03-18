@@ -88,7 +88,7 @@ DROP TABLE users;
 
 #### up
 
-migrate to the latest version.
+apply current version or later.
 
 ```bash
 $ mg up postgres-sample
@@ -107,7 +107,7 @@ OK 2019060819341948 to postgres-sample is testdata/postgres/seeds/20190608193419
 
 #### status
 
-display the status of migrate.
+display the current applied status.
 
 ```bash
 $ mg status postgres-sample
@@ -127,6 +127,16 @@ Error: Section is postgres-sample Unapplied version exists before current versio
 exit status 1
 ```
 
+#### force-up
+
+apply all versions not currently applied.
+
+```bash
+$ mg up postgres-sample
+OK 2019060819341811 to postgres-sample is testdata/postgres/seeds/2019060819341811_jobs.sql
+OK 2019060819341948 to postgres-sample is testdata/postgres/seeds/2019060819341948_users.sql
+```
+
 ### help
 ```
 Usage:
@@ -141,7 +151,8 @@ Options:
     -v bool
         Display the version of mg.
 Commands:
-    up      Migrate to the latest version.
-    down    Back to previous version.
-    status  Display the status of migrate.
+    up       Apply current version or later.
+    force-up Apply all versions not currently applied.
+    down     Back to previous version.
+    status   Display the current applied status.
 ```

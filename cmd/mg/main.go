@@ -75,6 +75,10 @@ func run() (err error) {
 					if err := m.Do(mg.UpDo); err != nil {
 						return err
 					}
+				case "force-up":
+					if err := m.Do(mg.ForceUpDo); err != nil {
+						return err
+					}
 				case "down":
 					if err := m.Do(mg.DownDo); err != nil {
 						return err
@@ -114,7 +118,8 @@ Options:
     -v bool
         Display the version of mg.
 Commands:
-    up      Migrate to the latest version.
-    down    Back to previous version.
-    status  Display the status of migrate.
+    up       Apply current version or later.
+    force-up Apply all versions not currently applied.
+    down     Back to previous version.
+    status   Display the current applied status.
 `
