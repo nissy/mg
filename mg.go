@@ -16,9 +16,10 @@ import (
 )
 
 const (
-	UpDo     = "up"
-	DownDo   = "down"
-	StatusDo = "status"
+	UpDo      = "up"
+	DownDo    = "down"
+	ForceUpDo = "force-up"
+	StatusDo  = "status"
 )
 
 var (
@@ -107,7 +108,7 @@ func (m *Migration) init(section string) error {
 func (m *Migration) fetchApplied(db *sql.DB, do string) error {
 	if err := db.QueryRow(m.VersionSQLBuilder.FetchCurrentApplied()).Scan(&m.status.CurrentVersion); err != nil {
 		switch do {
-		case UpDo, DownDo:
+		case UpDo, ForceUpDo, DownDo:
 			if _, err := db.Exec(m.VersionSQLBuilder.CreateTable()); err != nil {
 				return err
 			}
@@ -207,7 +208,8 @@ func (m *Migration) do(do string) error {
 		return err
 	}
 
-	if len(m.status.fetchApplySources(do)) == 0 {
+	applySources := m.status.fetchApplySources(do)
+	if len(applySources) == 0 {
 		a := fmt.Sprintf("Section %s has no version to migration.", m.Section)
 		if m.JsonFormat {
 			a = (jsonEncode(severityNotice, a))
@@ -216,10 +218,10 @@ func (m *Migration) do(do string) error {
 		return nil
 	}
 
-	for _, v := range m.status.fetchApplySources(do) {
+	for _, v := range applySources {
 		var mSQL, vSQL string
 		switch do {
-		case UpDo:
+		case UpDo, ForceUpDo:
 			mSQL = v.UpSQL
 			vSQL = m.VersionSQLBuilder.InsretApply(v.Version)
 		case DownDo:
@@ -361,6 +363,8 @@ func (s *status) fetchApplySources(do string) (ss []*Source) {
 	switch do {
 	case UpDo:
 		ss = s.ApplySources
+	case ForceUpDo:
+		ss = append(s.UnappliedSources, s.ApplySources...)
 	case DownDo:
 		if s.CurrentSource != nil {
 			return []*Source{s.CurrentSource}
