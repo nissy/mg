@@ -132,7 +132,7 @@ exit status 1
 apply all versions not currently applied.
 
 ```bash
-$ mg up postgres-sample
+$ mg force-up postgres-sample
 OK 2019060819341811 to postgres-sample is testdata/postgres/seeds/2019060819341811_jobs.sql
 OK 2019060819341948 to postgres-sample is testdata/postgres/seeds/2019060819341948_users.sql
 ```
