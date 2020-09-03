@@ -82,7 +82,7 @@ func (m *Migration) stringApplied(do string) (string, error) {
 func (m *Migration) stringStatus() (string, error) {
 	var err error
 	if len(m.status.UnappliedSources) > 0 {
-		err = errors.New("Unapplied version exists before current version.")
+		err = errors.New("There are versions that do not apply.")
 	}
 	if m.JsonFormat {
 		j := map[string]interface{}{
@@ -106,7 +106,12 @@ func (m *Migration) stringStatus() (string, error) {
 	if len(m.status.UnappliedSources) > 0 {
 		var befores []string
 		for _, v := range m.status.UnappliedSources {
-			befores = append(befores, fmt.Sprintf("%d %s", v.Version, v.File))
+			s := []string{fmt.Sprintf("%d", v.Version)}
+			if v.Duplicate {
+				s = append(s, "duplicate")
+			}
+			s = append(s, v.File)
+			befores = append(befores, strings.Join(s, " "))
 		}
 		out = fmt.Sprintf("    \x1b[31munapplied:\n%s\x1b[0m%s", fmt.Sprintf("        %s\n", strings.Join(befores, "\n        ")), out)
 	}
