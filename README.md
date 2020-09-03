@@ -120,10 +120,10 @@ Version of postgres-sample:
         2019060819341948 testdata/postgres/seeds/2019060819341948_users.sql
 ```
 
-exit with 1 if there is a previous version that has not been applied.
+exit with 1 if there is version that has not been applied.
 
 ```
-Error: Section is postgres-sample Unapplied version exists before current version.
+Error: Section is postgres-sample There are versions that do not apply.
 exit status 1
 ```
 
