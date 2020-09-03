@@ -121,6 +121,11 @@ func (m *Migration) fetchApplied(db *sql.DB, do string) error {
 	diff := make(map[uint64]*Source)
 	for _, v := range m.Sources {
 		if m.VersionStartNumber < v.Version {
+			//duplicate
+			if _, ok := diff[v.Version]; ok {
+				m.status.UnappliedSources = append(m.status.UnappliedSources, v)
+				continue
+			}
 			diff[v.Version] = v
 		}
 	}
@@ -158,13 +163,6 @@ func (m *Migration) fetchApplied(db *sql.DB, do string) error {
 		case v.Version < m.status.CurrentVersion:
 			m.status.UnappliedSources = append(m.status.UnappliedSources, v)
 		case v.Version > m.status.CurrentVersion:
-			//duplicate version
-			for _, vv := range m.status.ApplySources {
-				if vv.Version == v.Version {
-					m.status.UnappliedSources = append(m.status.UnappliedSources, v)
-					continue
-				}
-			}
 			m.status.ApplySources = append(m.status.ApplySources, v)
 		}
 	}
