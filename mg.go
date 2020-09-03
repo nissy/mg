@@ -158,6 +158,13 @@ func (m *Migration) fetchApplied(db *sql.DB, do string) error {
 		case v.Version < m.status.CurrentVersion:
 			m.status.UnappliedSources = append(m.status.UnappliedSources, v)
 		case v.Version > m.status.CurrentVersion:
+			//duplicate version
+			for _, vv := range m.status.ApplySources {
+				if vv.Version == v.Version {
+					m.status.UnappliedSources = append(m.status.UnappliedSources, v)
+					continue
+				}
+			}
 			m.status.ApplySources = append(m.status.ApplySources, v)
 		}
 	}
