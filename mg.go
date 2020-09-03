@@ -47,11 +47,12 @@ type (
 	}
 
 	Source struct {
-		UpSQL   string `json:"-"`
-		DownSQL string `json:"-"`
-		Apply   bool   `json:"apply"`
-		Version uint64 `json:"version"`
-		File    string `json:"file"`
+		UpSQL     string `json:"-"`
+		DownSQL   string `json:"-"`
+		Apply     bool   `json:"apply"`
+		Version   uint64 `json:"version"`
+		File      string `json:"file"`
+		Duplicate bool   `json:"duplicate"`
 	}
 
 	status struct {
@@ -121,6 +122,12 @@ func (m *Migration) fetchApplied(db *sql.DB, do string) error {
 	diff := make(map[uint64]*Source)
 	for _, v := range m.Sources {
 		if m.VersionStartNumber < v.Version {
+			//duplicate
+			if _, ok := diff[v.Version]; ok {
+				v.Duplicate = true
+				m.status.UnappliedSources = append(m.status.UnappliedSources, v)
+				continue
+			}
 			diff[v.Version] = v
 		}
 	}
